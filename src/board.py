@@ -1,17 +1,3 @@
-
-
-class Game:
-    '''
-    
-    # Classe de inicialização do jogo.
-    
-    '''
-
-    def __init__(self):
-        pass
-
-
-
 class Tabuleiro:
     def __init__(self):
         # Criação dos mini tabuleiros
@@ -25,9 +11,7 @@ class Tabuleiro:
         self.miniTabuleiro7 = miniTabuleiro()
         self.miniTabuleiro8 = miniTabuleiro()
 
-        #self.alt_valor_celula(0, (0, 0), "X")
-        #self.alt_valor_celula(0, (1, 1), "X")
-        #self.alt_valor_celula(0, (2, 2), "X")
+        self.miniTabuleiroRes = miniTabuleiro()
 
     def cria_miniTabuleiro(self):
         grid = []
@@ -39,24 +23,23 @@ class Tabuleiro:
         return grid
 
     def print_miniTabuleiroOnSelect(self, miniTabuleiroID):
-        # Criação de um tabuleiro vazio para referência visual
-        tabuleiro_vazio = [[" " for _ in range(3)] for _ in range(3)]
-
         # Determina a linha e coluna do mini tabuleiro selecionado
         linha = miniTabuleiroID // 3
         coluna = miniTabuleiroID % 3
 
-        # Insere um marcador na posição do mini tabuleiro selecionado
-        tabuleiro_vazio[linha][coluna] = "◯"
-
         # Imprime o tabuleiro com a indicação do mini tabuleiro selecionado
         print("╔═══╦═══╦═══╗")
         for i in range(3):
-            print("║", " ║ ".join(tabuleiro_vazio[i]), "║")
+            linha_atual = []
+            for j in range(3):
+                if i == linha and j == coluna:
+                    linha_atual.append("○")
+                else:
+                    linha_atual.append(str(self.miniTabuleiroRes.grid[i][j]))
+            print("║", " ║ ".join(linha_atual), "║")
             if i < 2:
                 print("╠═══╬═══╬═══╣")
         print("╚═══╩═══╩═══╝")
-
 
 
     def print_Tabuleiro(self):
@@ -96,7 +79,7 @@ class miniTabuleiro:
     def __init__(self):
         # Define interior do tabuleiro
         self.celulavazia = " "
-    
+        
         grid = []
         for i in range(3):
             row = []
@@ -106,14 +89,14 @@ class miniTabuleiro:
 
         self.grid = grid     
 
-    def print_miniTabuleiro(self, grid):
-        print("    1   2   3 ")
-        print("  ┌───┬───┬───┐")
+    def print_miniTabuleiro(self):
+        print("      A       B       C ")
+        print("  ┌───────┬───────┬───────┐")
         for i, row in enumerate(["1", "2", "3"]):
-            print(row, "│", " │ ".join(str(grid[i][j]) for j in range(3)), "│")
+            print(row, "│  ", "   │   ".join(str(self.grid[i][j]) for j in range(3)), "  │")
             if i < 2:
-                print("  ├───┼───┼───┤")
-        print("  └───┴───┴───┘")
+                print("  ├───────┼───────┼───────┤")
+        print("  └───────┴───────┴───────┘")
 
     def checar_vitoria_miniTabuleiro(self):
         # Verifica linhas e colunas
@@ -131,22 +114,28 @@ class miniTabuleiro:
 
         return None  # Retorna None se não houver vencedor
 
-    
+
+if __name__ == "__main__":
+    tabuleiro = Tabuleiro()
 
 
-#grid = Tabuleiro.cria_miniTabuleiro()
-#Tabuleiro.print_miniTabuleiro(grid)
+    tabuleiro.alt_valor_celula(1, (2, 2), "A")
+    tabuleiro.alt_valor_celula(8, (1,1), "E")
+    tabuleiro.alt_valor_celula(4, (2, 2), "A")
+    tabuleiro.alt_valor_celula(8, (0,0), "E")
+    tabuleiro.alt_valor_celula(0, (2, 2), "A")
+    tabuleiro.alt_valor_celula(8, (2,2), "E")
+    tabuleiro.alt_valor_celula(0, (0, 0), "A")
+    tabuleiro.alt_valor_celula(0, (0, 1), "A")
+    tabuleiro.alt_valor_celula(0, (0, 2), "A")
+    #tabuleiro.print_Tabuleiro()
 
-tabuleiro = Tabuleiro()
-tabuleiro.print_miniTabuleiroOnSelect(1)
+    tabuleiro.miniTabuleiro0.print_miniTabuleiro()
 
-tabuleiro.alt_valor_celula(1, (2, 2), "A")
-tabuleiro.alt_valor_celula(8, (1,1), "E")
-tabuleiro.alt_valor_celula(4, (2, 2), "A")
-tabuleiro.alt_valor_celula(8, (0,0), "E")
-tabuleiro.alt_valor_celula(0, (2, 2), "A")
-tabuleiro.alt_valor_celula(8, (2,2), "E")
-tabuleiro.print_Tabuleiro()
-print(tabuleiro.miniTabuleiro8.checar_vitoria_miniTabuleiro())
+    tabuleiro.alt_valor_celula("Res", (0, 0), "A")
+    tabuleiro.alt_valor_celula("Res", (2, 2), "E")
 
+    #tabuleiro.print_miniTabuleiroOnSelect(1)
 
+    #print(tabuleiro.miniTabuleiro8.checar_vitoria_miniTabuleiro())
+    #print(tabuleiro.miniTabuleiro0.checar_vitoria_miniTabuleiro())
