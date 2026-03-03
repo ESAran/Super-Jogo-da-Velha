@@ -1,0 +1,87 @@
+#---
+    tabuleiro.alt_valor_celula(2, (0, 2), "T")
+    tabuleiro.alt_valor_celula(2, (1, 1), "E")
+
+    tabuleiro.alt_valor_celula(4, (0, 0), "T")
+    tabuleiro.alt_valor_celula(0, (0, 1), "E")
+
+    tabuleiro.alt_valor_celula(1, (2, 0), "T")
+    tabuleiro.alt_valor_celula(6, (2, 0), "E")
+
+    tabuleiro.alt_valor_celula(6, (0, 2), "T")
+    tabuleiro.alt_valor_celula(2, (0, 1), "E")
+
+    tabuleiro.alt_valor_celula(1, (1, 1), "T")
+    tabuleiro.alt_valor_celula(4, (1, 1), "E")
+
+    tabuleiro.alt_valor_celula(4, (2, 2), "T")
+    tabuleiro.alt_valor_celula(8, (1, 1), "E")
+
+    tabuleiro.alt_valor_celula(4, (2, 0), "T")
+    tabuleiro.alt_valor_celula(6, (1, 0), "E")
+
+    tabuleiro.alt_valor_celula(4, (2, 0), "T")
+    tabuleiro.alt_valor_celula(6, (1, 0), "E")
+
+    tabuleiro.alt_valor_celula(4, (2, 0), "T")
+    tabuleiro.alt_valor_celula(6, (1, 0), "E")
+
+    tabuleiro.alt_valor_celula(3, (1, 0), "T")
+    tabuleiro.alt_valor_celula(3, (1, 1), "E")
+
+    tabuleiro.alt_valor_celula(4, (2, 1), "T")
+    tabuleiro.alt_valor_celula(7, (2, 1), "E")
+
+    tabuleiro.alt_valor_celula("Res", (1, 1), "T")
+
+    tabuleiro.alt_valor_celula(7, (1, 2), "T")
+    tabuleiro.alt_valor_celula(5, (1, 2), "E")
+
+    tabuleiro.alt_valor_celula(5, (2, 1), "T")
+    tabuleiro.alt_valor_celula(7, (0, 1), "E")
+
+    tabuleiro.alt_valor_celula(1, (0, 2), "T")
+    tabuleiro.alt_valor_celula(2, (2, 1), "E")
+
+    tabuleiro.alt_valor_celula("Res", (0, 1), "T")
+    tabuleiro.alt_valor_celula("Res", (0, 2), "E")
+
+    tabuleiro.alt_valor_celula(7, (1, 1), "T")
+    tabuleiro.alt_valor_celula(7, (1, 0), "E")
+
+    tabuleiro.alt_valor_celula(3, (0, 0), "T")
+    tabuleiro.alt_valor_celula(0, (1, 0), "E")
+
+    tabuleiro.alt_valor_celula(3, (2, 0), "T")
+    tabuleiro.alt_valor_celula(6, (0, 0), "E")
+
+    tabuleiro.alt_valor_celula("Res", (1, 0), "T")
+    tabuleiro.alt_valor_celula("Res", (2, 0), "E")
+
+    tabuleiro.alt_valor_celula(0, (2, 2), "T")
+    tabuleiro.alt_valor_celula(8, (0, 0), "E")
+
+    tabuleiro.alt_valor_celula(0, (1, 2), "T")
+    tabuleiro.alt_valor_celula(5, (0, 0), "E")
+
+    tabuleiro.alt_valor_celula(0, (0, 0), "T")
+    tabuleiro.alt_valor_celula(0, (2, 1), "E")
+
+    tabuleiro.alt_valor_celula(7, (2, 2), "T")
+    tabuleiro.alt_valor_celula(8, (1, 2), "E")
+
+    tabuleiro.alt_valor_celula(6, (1, 2), "T")
+    tabuleiro.alt_valor_celula(5, (0, 0), "E")
+
+    tabuleiro.alt_valor_celula(5, (2, 2), "T")
+    tabuleiro.alt_valor_celula(5, (2, 2), "E")
+
+    tabuleiro.alt_valor_celula(7, (0, 0), "T")
+    
+    tabuleiro.alt_valor_celula("Res", (2, 1), "T")
+
+    tabuleiro.print_Tabuleiro()
+    tabuleiro.print_miniTabuleiroOnSelect(8)
+
+    print(tabuleiro.miniTabuleiro7.checar_vitoria_miniTabuleiro())
+#---
