@@ -8,12 +8,12 @@ class OpcaoMenu:
 
 
 OPCOES_MENU: list[OpcaoMenu] = [
-    OpcaoMenu("1", "Jogador vs jogador"),
-    OpcaoMenu("2", "Jogador vs maquina"),
-    OpcaoMenu("3", "Como jogar"),
-    OpcaoMenu("4", "Historico de jogos"),
-    OpcaoMenu("5", "Creditos"),
-    OpcaoMenu("6", "Conquistas"),
+    OpcaoMenu("1", "JvJ        - Jogador vs Jogador"),
+    OpcaoMenu("2", "JvM        - Jogador vs Maquina"),
+    OpcaoMenu("3", "Regras     - Como jogar"),
+    OpcaoMenu("4", "Partidas   - Historico de jogos"),
+    OpcaoMenu("5", "Creditos   - Desenvolvedores"),
+    OpcaoMenu("6", "Conquistas - Desafios concluidos"),
     OpcaoMenu("0", "Sair"),
 ]
 
@@ -26,10 +26,10 @@ def obter_opcoes_menu() -> list[OpcaoMenu]:
 def renderizar_menu_principal(mensagem: str = "") -> str:
     """Monta a tela do menu principal."""
     linhas: list[str] = [
-        "Super Jogo da Velha",
+        "Ϩ𐌵ⲣⲉꞅ 𝓙ⲟ𝓰ⲟ ⲇⲁ 𝓥ⲉ𝓵ⲏⲁ",
         "",
-        "Menu principal",
-        "",
+        "ᙏҽɳᥙ ρɾιɳ𝓬ιραɬ",
+        "=̷=̷===̷===̷=̷===̷===̷=̷===̷=̷===̷=̷===̷=̷===̷===̷=̷===̷==",
     ]
 
     for opcao in obter_opcoes_menu():
@@ -40,7 +40,7 @@ def renderizar_menu_principal(mensagem: str = "") -> str:
         linhas.append(mensagem)
 
     linhas.append("")
-    linhas.append("Escolha uma opcao:")
+    linhas.append("Escolha uma opção:")
 
     return "\n".join(linhas)
 
