@@ -53,13 +53,19 @@ def render_tabuleiro(tabuleiro: Tabuleiro) -> str:
 def render_status(jogo: MotorJogo) -> str:
     """Retorna uma linha simples com o estado atual da partida."""
     if jogo.finalizado and jogo.vencedor is not None:
-        return f"Vencedor: {jogo.vencedor}"
+        return f"Vencedor: {jogo.vencedor.nome} ({jogo.vencedor.simbolo})"
+
+    jogador_atual = jogo.jogador_atual
+    descricao_jogador = f"{jogador_atual.nome} ({jogador_atual.simbolo})"
 
     if jogo.mini_obrigatorio is None:
-        return f"Jogador atual: {jogo.jogador_atual} | Pode jogar em qualquer mini tabuleiro."
+        return (
+            f"Jogador atual: {descricao_jogador} | "
+            "Pode jogar em qualquer mini tabuleiro."
+        )
 
     return (
-        f"Jogador atual: {jogo.jogador_atual} | "
+        f"Jogador atual: {descricao_jogador} | "
         f"Mini obrigatorio: {jogo.mini_obrigatorio + 1}"
     )
 
