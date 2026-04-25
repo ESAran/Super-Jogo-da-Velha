@@ -1,0 +1,57 @@
+Etapa 8 - Criar storage para histórico e conquistas
+
+Criar a pasta storage com:
+src/storage/historico_repository.py
+src/storage/conquistas_repository.py
+
+Mesmo que inicialmente ainda não exista persistência real, já vale criar esses arquivos para preparar a arquitetura.
+
+Ideia inicial:
+historico_repository deve salvar e ler partidas
+conquistas_repository deve salvar e ler conquistas liberadas
+
+Formato sugerido para depois:
+usar JSON simples
+
+Esses arquivos não devem conhecer a CLI.
+Eles só devem cuidar de leitura e gravação de dados.
+
+Etapa 9 - Definir o futuro de jogador.py
+
+O arquivo jogador.py ainda está vazio.
+Por enquanto ele pode ficar assim, mas no futuro pode representar:
+nome do jogador
+símbolo do jogador
+tipo do jogador, humano ou máquina
+estatísticas
+conquistas vinculadas
+
+Não vale inventar muita coisa agora se isso ainda não for usado.
+
+Etapa 10 - Ordem recomendada de implementação
+
+Criar src/ui/cli/jogo_cli.py e mover a lógica da partida para lá.
+Simplificar app.py para chamar só a execução da partida.
+Criar src/ui/cli/menu.py.
+Criar src/ui/cli/telas.py.
+Criar src/ui/cli/app_cli.py para controlar o fluxo do menu.
+Fazer app.py passar a chamar a aplicação CLI completa.
+Criar src/storage/historico_repository.py.
+Criar src/storage/conquistas_repository.py.
+Só depois começar a implementar histórico real, conquistas e modo jogador vs máquina.
+Benefícios dessa reorganização
+
+Separação melhor entre interface, domínio e persistência.
+Menos acoplamento em app.py.
+Mais facilidade para crescer o projeto sem transformar a entrada principal em um arquivo grande demais.
+Base mais preparada para menu, IA, histórico e conquistas.
+
+Próximo passo prático
+
+Começar pela extração da partida para src/ui/cli/jogo_cli.py.
+Essa é a mudança que traz mais organização com menor risco.
+
+Se quiser, eu posso no próximo passo te entregar o conteúdo exato de cada um dos três primeiros arquivos:
+app.py
+src/ui/cli/jogo_cli.py
+src/ui/cli/app_cli.py

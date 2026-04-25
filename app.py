@@ -1,11 +1,5 @@
+from src.ui.cli.app_cli import executar_aplicacao
 
 
-class Game:
-    '''
-    
-    # Classe de inicialização do jogo.
-    
-    '''
-
-    def __init__(self):
-        pass
+if __name__ == "__main__":
+    executar_aplicacao()
