@@ -1,33 +1,36 @@
-from app.game.engine import Jogador, MotorJogo
-from app.schemas.game import EstadoPartida, JogadaEntrada, JogadorEntrada
+from fastapi import APIRouter, FastAPI, HTTPException
+
+from app.schemas.game import EstadoPartida, JogadaEntrada, JogadoresEntrada
+from app.services.game_service import PartidaService
 
 
-def criar_partida(
-    jogador_1: JogadorEntrada,
-    jogador_2: JogadorEntrada,
-) -> MotorJogo:
-    """Cria uma partida sem depender de uma interface especifica."""
-    return MotorJogo(
-        Jogador(jogador_1.nome, jogador_1.simbolo),
-        Jogador(jogador_2.nome, jogador_2.simbolo),
-    )
+app = FastAPI(title="Super Jogo da Velha API")
+router = APIRouter(prefix="/game", tags=["game"])
+partida_service = PartidaService()
 
 
-def jogar(jogo: MotorJogo, jogada: JogadaEntrada) -> EstadoPartida:
-    """Executa uma jogada e devolve um estado serializavel."""
-    jogo.jogar(jogada.mini_id, jogada.linha, jogada.coluna)
-    return obter_estado(jogo)
+@router.post("/start", response_model=EstadoPartida)
+def iniciar_partida(entrada: JogadoresEntrada) -> EstadoPartida:
+    try:
+        return partida_service.iniciar_partida(entrada)
+    except ValueError as erro:
+        raise HTTPException(status_code=400, detail=str(erro)) from erro
 
 
-def obter_estado(jogo: MotorJogo) -> EstadoPartida:
-    vencedor = None
+@router.post("/move", response_model=EstadoPartida)
+def realizar_jogada(entrada: JogadaEntrada) -> EstadoPartida:
+    try:
+        return partida_service.realizar_jogada(entrada)
+    except ValueError as erro:
+        raise HTTPException(status_code=400, detail=str(erro)) from erro
 
-    if jogo.vencedor is not None:
-        vencedor = jogo.vencedor.nome
 
-    return EstadoPartida(
-        jogador_atual=jogo.jogador_atual.nome,
-        finalizado=jogo.finalizado,
-        mini_obrigatorio=jogo.mini_obrigatorio,
-        vencedor=vencedor,
-    )
+@router.get("/state", response_model=EstadoPartida)
+def obter_estado() -> EstadoPartida:
+    try:
+        return partida_service.obter_estado()
+    except ValueError as erro:
+        raise HTTPException(status_code=400, detail=str(erro)) from erro
+
+
+app.include_router(router)
