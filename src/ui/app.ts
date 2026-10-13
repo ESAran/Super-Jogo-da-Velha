@@ -1,0 +1,554 @@
+import { GameEngine, Player } from "../game/engine";
+import { GameAudio } from "./audio";
+
+type Screen = "menu" | "setup" | "game" | "rules" | "history" | "credits" | "achievements";
+
+interface HistoryEntry {
+  id: string;
+  playerOne: string;
+  playerTwo: string;
+  winner: string | null;
+  playedAt: string;
+}
+
+const HISTORY_KEY = "sjv84.history.v1";
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+export class GameApp {
+  private readonly root: HTMLElement;
+  private readonly audio = new GameAudio();
+  private screen: Screen = "menu";
+  private game: GameEngine | null = null;
+  private lastMove: { mini: number; cell: number } | null = null;
+  private matchSaved = false;
+  private notice = "";
+
+  constructor(root: HTMLElement) {
+    this.root = root;
+    this.bindEvents();
+    this.render();
+  }
+
+  private bindEvents(): void {
+    this.root.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      const button = target.closest<HTMLButtonElement>("button[data-action]");
+      if (button === null) {
+        return;
+      }
+
+      this.handleAction(button);
+    });
+
+    this.root.addEventListener("submit", (event) => {
+      const form = event.target;
+      if (!(form instanceof HTMLFormElement) || !form.matches("[data-player-form]")) {
+        return;
+      }
+
+      event.preventDefault();
+      this.startMatch(new FormData(form));
+    });
+  }
+
+  private handleAction(button: HTMLButtonElement): void {
+    const action = button.dataset.action;
+
+    if (action !== "play-cell") {
+      this.audio.select();
+    }
+
+    switch (action) {
+      case "local-game":
+        this.goTo("setup");
+        break;
+      case "machine-game":
+        this.notice = "MODULO IA AINDA FORA DE LINHA";
+        this.render();
+        break;
+      case "rules":
+      case "history":
+      case "credits":
+      case "achievements":
+        this.goTo(action);
+        break;
+      case "menu":
+        this.game = null;
+        this.goTo("menu");
+        break;
+      case "restart":
+        this.restartMatch();
+        break;
+      case "toggle-sound":
+        this.audio.toggle();
+        this.render();
+        break;
+      case "play-cell":
+        this.playCell(button);
+        break;
+    }
+  }
+
+  private goTo(screen: Screen): void {
+    this.screen = screen;
+    this.notice = "";
+    this.render();
+  }
+
+  private startMatch(data: FormData): void {
+    try {
+      const playerOne = new Player(
+        String(data.get("player-one") ?? ""),
+        String(data.get("symbol-one") ?? ""),
+      );
+      const playerTwo = new Player(
+        String(data.get("player-two") ?? ""),
+        String(data.get("symbol-two") ?? ""),
+      );
+
+      this.game = new GameEngine(playerOne, playerTwo);
+      this.matchSaved = false;
+      this.lastMove = null;
+      this.notice = "SISTEMA SINCRONIZADO // JOGADOR 1 INICIA";
+      this.screen = "game";
+      this.render();
+    } catch (error) {
+      this.audio.error();
+      this.notice = error instanceof Error ? error.message : "Falha ao iniciar partida.";
+      this.render();
+    }
+  }
+
+  private restartMatch(): void {
+    if (this.game === null) {
+      return;
+    }
+
+    this.game = new GameEngine(
+      new Player(this.game.playerOne.name, this.game.playerOne.symbol),
+      new Player(this.game.playerTwo.name, this.game.playerTwo.symbol),
+    );
+    this.matchSaved = false;
+    this.lastMove = null;
+    this.notice = "NOVA RODADA INICIALIZADA";
+    this.render();
+  }
+
+  private playCell(button: HTMLButtonElement): void {
+    if (this.game === null) {
+      return;
+    }
+
+    const mini = Number(button.dataset.mini);
+    const cell = Number(button.dataset.cell);
+    const playerIndex = this.game.currentPlayer === this.game.playerOne ? 0 : 1;
+
+    try {
+      const result = this.game.play(mini, cell);
+      this.lastMove = { mini, cell };
+      this.audio.move(playerIndex);
+
+      if (result.gameWon) {
+        this.notice = "SEQUENCIA MESTRA CONFIRMADA";
+        this.audio.win();
+      } else if (result.draw) {
+        this.notice = "SISTEMA SATURADO // EMPATE";
+      } else if (result.miniWon) {
+        this.notice = "SETOR DOMINADO";
+        this.audio.miniWon();
+      } else {
+        this.notice = result.nextRequiredMini === null
+          ? "DESTINO LIVRE // ESCOLHA UM SETOR"
+          : `ROTA FIXADA // SETOR ${result.nextRequiredMini + 1}`;
+      }
+
+      if (this.game.finished && !this.matchSaved) {
+        this.saveCurrentMatch();
+        this.matchSaved = true;
+      }
+
+      this.render();
+    } catch (error) {
+      this.audio.error();
+      this.notice = error instanceof Error ? error.message : "Jogada invalida.";
+      this.render();
+    }
+  }
+
+  private saveCurrentMatch(): void {
+    if (this.game === null) {
+      return;
+    }
+
+    const history = this.readHistory();
+    history.unshift({
+      id: crypto.randomUUID(),
+      playerOne: this.game.playerOne.name,
+      playerTwo: this.game.playerTwo.name,
+      winner: this.game.winner?.name ?? null,
+      playedAt: new Date().toISOString(),
+    });
+
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 20)));
+    } catch {
+      // O jogo continua funcionando mesmo quando o navegador bloqueia armazenamento local.
+    }
+  }
+
+  private readHistory(): HistoryEntry[] {
+    try {
+      const stored = localStorage.getItem(HISTORY_KEY);
+      if (stored === null) {
+        return [];
+      }
+
+      const parsed: unknown = JSON.parse(stored);
+      return Array.isArray(parsed) ? (parsed as HistoryEntry[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private render(): void {
+    let content = "";
+
+    switch (this.screen) {
+      case "menu":
+        content = this.renderMenu();
+        break;
+      case "setup":
+        content = this.renderSetup();
+        break;
+      case "game":
+        content = this.renderGame();
+        break;
+      case "rules":
+        content = this.renderRules();
+        break;
+      case "history":
+        content = this.renderHistory();
+        break;
+      case "credits":
+        content = this.renderCredits();
+        break;
+      case "achievements":
+        content = this.renderAchievements();
+        break;
+    }
+
+    this.root.innerHTML = `
+      <div class="noise" aria-hidden="true"></div>
+      <div class="scanlines" aria-hidden="true"></div>
+      <main class="shell">
+        ${this.renderHeader()}
+        ${content}
+      </main>
+    `;
+  }
+
+  private renderHeader(): string {
+    const soundLabel = this.audio.isEnabled() ? "SOM: ON" : "SOM: OFF";
+
+    return `
+      <header class="system-header">
+        <div class="brand-lockup">
+          <span class="eyebrow">SJV-84 // REDE LOCAL</span>
+          <h1 class="glitch" data-text="SUPER JOGO DA VELHA">SUPER JOGO DA VELHA</h1>
+        </div>
+        <button class="sound-toggle" data-action="toggle-sound" type="button" aria-label="Alternar som">
+          <span class="status-dot ${this.audio.isEnabled() ? "is-on" : ""}"></span>${soundLabel}
+        </button>
+      </header>
+    `;
+  }
+
+  private renderMenu(): string {
+    return `
+      <section class="menu-layout">
+        <div class="hero-copy">
+          <p class="signal">SINAL DETECTADO // 09 SETORES ATIVOS</p>
+          <h2>Nove jogos.<br><em>Uma guerra.</em></h2>
+          <p class="intro">
+            Cada movimento reprograma o destino do adversario. Domine tres setores
+            antes que o sistema domine voce.
+          </p>
+          <div class="version-line"><span></span>BUILD WEB 0.2 // SEM CONEXAO EXTERNA</div>
+        </div>
+
+        <nav class="main-menu" aria-label="Menu principal">
+          <button class="menu-option is-primary" data-action="local-game" type="button">
+            <span class="option-code">01</span>
+            <span><strong>JOGADOR VS JOGADOR</strong><small>duelo local // iniciar</small></span>
+            <span class="option-arrow">↗</span>
+          </button>
+          <button class="menu-option" data-action="machine-game" type="button">
+            <span class="option-code">02</span>
+            <span><strong>JOGADOR VS MAQUINA</strong><small>modulo em desenvolvimento</small></span>
+            <span class="option-arrow">×</span>
+          </button>
+          <div class="menu-grid">
+            <button data-action="rules" type="button">REGRAS</button>
+            <button data-action="history" type="button">ARQUIVO</button>
+            <button data-action="achievements" type="button">CONQUISTAS</button>
+            <button data-action="credits" type="button">CREDITOS</button>
+          </div>
+          ${this.renderNotice()}
+        </nav>
+      </section>
+    `;
+  }
+
+  private renderSetup(): string {
+    return `
+      <section class="panel setup-panel">
+        <div class="panel-heading">
+          <span>CONFIGURACAO DE IDENTIDADE</span>
+          <strong>01 / 02</strong>
+        </div>
+        <form class="player-form" data-player-form>
+          <fieldset class="player-config player-one">
+            <legend>JOGADOR 1</legend>
+            <label>NOME DE OPERADOR<input name="player-one" maxlength="18" value="Alice" required /></label>
+            <label>SIMBOLO<input name="symbol-one" maxlength="1" value="X" required /></label>
+          </fieldset>
+          <div class="versus-mark">VS</div>
+          <fieldset class="player-config player-two">
+            <legend>JOGADOR 2</legend>
+            <label>NOME DE OPERADOR<input name="player-two" maxlength="18" value="Bruno" required /></label>
+            <label>SIMBOLO<input name="symbol-two" maxlength="1" value="O" required /></label>
+          </fieldset>
+          <div class="form-actions">
+            <button class="ghost-button" data-action="menu" type="button">← CANCELAR</button>
+            <button class="launch-button" type="submit">INICIAR PARTIDA <span>↗</span></button>
+          </div>
+        </form>
+        ${this.renderNotice()}
+      </section>
+    `;
+  }
+
+  private renderGame(): string {
+    if (this.game === null) {
+      this.screen = "menu";
+      return this.renderMenu();
+    }
+
+    const game = this.game;
+    const requiredText = game.requiredMini === null ? "LIVRE" : String(game.requiredMini + 1).padStart(2, "0");
+
+    return `
+      <section class="game-layout">
+        <aside class="game-sidebar left-sidebar">
+          ${this.renderPlayerCard(game.playerOne, game.currentPlayer === game.playerOne, 1)}
+          ${this.renderPlayerCard(game.playerTwo, game.currentPlayer === game.playerTwo, 2)}
+          <div class="route-panel">
+            <span>PROXIMO SETOR</span>
+            <strong>${requiredText}</strong>
+            <small>${game.requiredMini === null ? "rota aberta" : "destino obrigatorio"}</small>
+          </div>
+          <button class="ghost-button full" data-action="menu" type="button">ABORTAR PARTIDA</button>
+        </aside>
+
+        <div class="board-stage">
+          <div class="board-meta"><span>GRADE PRINCIPAL // 3×3</span><b>CLIQUE PARA MARCAR</b></div>
+          <div class="ultimate-board" role="grid" aria-label="Super Jogo da Velha">
+            ${game.board.getMiniBoards().map((_, index) => this.renderMiniBoard(index)).join("")}
+          </div>
+          ${this.renderNotice()}
+        </div>
+
+        <aside class="game-sidebar right-sidebar">
+          <div class="macro-panel">
+            <div class="panel-heading compact"><span>MAPA DE DOMINIO</span><strong>9X</strong></div>
+            <div class="macro-board">
+              ${game.board.getMacroCells().map((cell, index) => `
+                <div class="macro-cell ${cell === null && game.board.getMini(index).isClosed() ? "is-draw" : ""} ${this.symbolClass(cell)}">
+                  ${cell === null ? (game.board.getMini(index).isClosed() ? "·" : index + 1) : escapeHtml(cell)}
+                </div>
+              `).join("")}
+            </div>
+          </div>
+          <div class="telemetry">
+            <span>ESTADO</span>
+            <strong>${game.finished ? "ENCERRADO" : "EM CURSO"}</strong>
+            <span>PROTOCOLO</span>
+            <strong>ULTIMATE / LOCAL</strong>
+          </div>
+        </aside>
+
+        ${game.finished ? this.renderOutcome() : ""}
+      </section>
+    `;
+  }
+
+  private renderPlayerCard(player: Player, active: boolean, number: number): string {
+    return `
+      <div class="player-card player-${number} ${active ? "is-active" : ""}">
+        <div><span>OPERADOR 0${number}</span><i>${active ? "ATIVO" : "AGUARDE"}</i></div>
+        <strong>${escapeHtml(player.symbol)}</strong>
+        <p>${escapeHtml(player.name)}</p>
+      </div>
+    `;
+  }
+
+  private renderMiniBoard(miniIndex: number): string {
+    if (this.game === null) {
+      return "";
+    }
+
+    const mini = this.game.board.getMini(miniIndex);
+    const winner = mini.getWinner();
+    const playable = !this.game.finished && (
+      this.game.requiredMini === null ||
+      this.game.requiredMini === miniIndex ||
+      !this.game.rules.isMiniAvailable(this.game.board, this.game.requiredMini)
+    ) && !mini.isClosed();
+
+    return `
+      <section class="mini-board ${playable ? "is-playable" : ""} ${winner !== null ? `is-won ${this.symbolClass(winner)}` : ""}" aria-label="Mini tabuleiro ${miniIndex + 1}">
+        <span class="mini-index">0${miniIndex + 1}</span>
+        ${mini.getCells().map((cell, cellIndex) => {
+          const valid = this.game?.isMoveValid(miniIndex, cellIndex) ?? false;
+          const last = this.lastMove?.mini === miniIndex && this.lastMove.cell === cellIndex;
+          return `
+            <button
+              class="game-cell ${this.symbolClass(cell)} ${last ? "is-last" : ""}"
+              data-action="play-cell"
+              data-mini="${miniIndex}"
+              data-cell="${cellIndex}"
+              type="button"
+              aria-label="Setor ${miniIndex + 1}, posicao ${cellIndex + 1}${cell === null ? "" : `, marcada com ${escapeHtml(cell)}`}"
+              ${valid ? "" : "disabled"}
+            ><span>${cell === null ? "" : escapeHtml(cell)}</span></button>
+          `;
+        }).join("")}
+        ${winner === null ? "" : `<div class="mini-winner" aria-hidden="true">${escapeHtml(winner)}</div>`}
+      </section>
+    `;
+  }
+
+  private renderOutcome(): string {
+    if (this.game === null) {
+      return "";
+    }
+
+    const title = this.game.draw ? "EMPATE DE SISTEMA" : "DOMINIO TOTAL";
+    const message = this.game.winner === null
+      ? "Todos os setores foram encerrados sem uma sequencia mestre."
+      : `${escapeHtml(this.game.winner.name)} venceu com o simbolo ${escapeHtml(this.game.winner.symbol)}.`;
+
+    return `
+      <div class="outcome-backdrop">
+        <div class="outcome-card">
+          <span>TRANSMISSAO FINALIZADA</span>
+          <h2>${title}</h2>
+          <p>${message}</p>
+          <div>
+            <button class="ghost-button" data-action="menu" type="button">MENU</button>
+            <button class="launch-button" data-action="restart" type="button">JOGAR NOVAMENTE ↗</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  private renderRules(): string {
+    return this.renderInfoPanel(
+      "PROTOCOLO DE JOGO",
+      `
+        <div class="rules-grid">
+          <article><b>01</b><h3>ESCOLHA UM SETOR</h3><p>A primeira jogada pode acontecer em qualquer um dos nove mini tabuleiros.</p></article>
+          <article><b>02</b><h3>REPROGRAME A ROTA</h3><p>A posicao marcada determina em qual mini tabuleiro o adversario devera jogar.</p></article>
+          <article><b>03</b><h3>DOMINE A GRADE</h3><p>Forme uma linha de tres para dominar um mini tabuleiro no mapa principal.</p></article>
+          <article><b>04</b><h3>QUEBRE O SISTEMA</h3><p>Domine tres setores alinhados para vencer. Se o destino estiver fechado, a rota fica livre.</p></article>
+        </div>
+      `,
+    );
+  }
+
+  private renderHistory(): string {
+    const history = this.readHistory();
+    const rows = history.length === 0
+      ? `<div class="empty-state"><strong>SEM REGISTROS</strong><p>Conclua uma partida para alimentar o arquivo local.</p></div>`
+      : `<div class="history-list">${history.map((entry, index) => `
+          <article>
+            <span>${String(index + 1).padStart(2, "0")}</span>
+            <div><strong>${escapeHtml(entry.playerOne)} × ${escapeHtml(entry.playerTwo)}</strong><small>${new Date(entry.playedAt).toLocaleString("pt-BR")}</small></div>
+            <b>${entry.winner === null ? "EMPATE" : `VENCEDOR: ${escapeHtml(entry.winner)}`}</b>
+          </article>
+        `).join("")}</div>`;
+
+    return this.renderInfoPanel("ARQUIVO DE PARTIDAS", rows);
+  }
+
+  private renderAchievements(): string {
+    const history = this.readHistory();
+    const achievements = [
+      { code: "A-01", name: "PRIMEIRO SINAL", detail: "Conclua uma partida", unlocked: history.length >= 1 },
+      { code: "A-02", name: "DOMINADOR", detail: "Venca uma partida", unlocked: history.some((entry) => entry.winner !== null) },
+      { code: "A-03", name: "ARQUIVISTA", detail: "Conclua cinco partidas", unlocked: history.length >= 5 },
+    ];
+
+    return this.renderInfoPanel(
+      "CONQUISTAS",
+      `<div class="achievement-list">${achievements.map((item) => `
+        <article class="${item.unlocked ? "is-unlocked" : ""}">
+          <span>${item.code}</span><div><strong>${item.name}</strong><small>${item.detail}</small></div><b>${item.unlocked ? "LIBERADA" : "BLOQUEADA"}</b>
+        </article>
+      `).join("")}</div>`,
+    );
+  }
+
+  private renderCredits(): string {
+    return this.renderInfoPanel(
+      "CREDITOS DO SISTEMA",
+      `
+        <div class="credits-card">
+          <span>PROJETO ORIGINAL E DESENVOLVIMENTO</span>
+          <h2>EDUARDO ARAN</h2>
+          <p>Super Jogo da Velha nasceu como um projeto Python de terminal e agora opera diretamente no navegador.</p>
+          <div><b>ENGINE</b> TYPESCRIPT</div><div><b>INTERFACE</b> HTML / CSS</div><div><b>REDE</b> OFFLINE</div>
+        </div>
+      `,
+    );
+  }
+
+  private renderInfoPanel(title: string, content: string): string {
+    return `
+      <section class="panel info-panel">
+        <div class="panel-heading"><span>${title}</span><strong>SYS</strong></div>
+        ${content}
+        <button class="ghost-button" data-action="menu" type="button">← VOLTAR AO MENU</button>
+      </section>
+    `;
+  }
+
+  private renderNotice(): string {
+    if (this.notice.length === 0) {
+      return "";
+    }
+
+    return `<div class="notice" role="status"><span></span>${escapeHtml(this.notice)}</div>`;
+  }
+
+  private symbolClass(symbol: string | null): string {
+    if (symbol === null || this.game === null) {
+      return "";
+    }
+
+    return symbol === this.game.playerOne.symbol ? "symbol-one" : "symbol-two";
+  }
+}
