@@ -1,3 +1,0 @@
-from app.services.cli import executar_aplicacao
-
-__all__ = ["executar_aplicacao"]
