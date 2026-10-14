@@ -2,6 +2,14 @@
 
 Versao web do Super Jogo da Velha, executada inteiramente no navegador. O projeto nao depende de API ou servidor Python para jogar.
 
+## Primeira versao web
+
+Versao **1.0.0**, identificada pela tag `web-v1.0.0`. A tag legada `v1.0` continua preservando a versao anterior em Python.
+
+Esta entrega inclui o duelo local entre dois jogadores, identidade visual retro, sons, historico e conquistas persistentes. O modo contra a maquina ainda nao esta disponivel; multiplayer online tambem nao faz parte desta versao.
+
+O progresso fica salvo neste navegador, sem conta ou sincronizacao entre dispositivos. Depois desta entrega, novas alteracoes devem partir de `develop` em branches dedicadas e retornar por pull request.
+
 ## Executar localmente
 
 ```bash

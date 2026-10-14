@@ -181,14 +181,25 @@ input:focus-visible {
 .hero-copy h2 {
   max-width: 780px;
   margin: 24px 0;
-  font-size: clamp(3.7rem, 8.5vw, 8.8rem);
-  line-height: 0.76;
+  font-size: clamp(3.4rem, 5.8vw, 6rem);
+  line-height: 0.9;
   letter-spacing: -0.075em;
   text-transform: uppercase;
   text-shadow: 4px 4px 0 rgba(255, 42, 139, 0.2);
 }
 
-.hero-copy h2 em {
+.hero-subtitle {
+  margin: 28px 0;
+  color: #ff453a;
+  font-size: clamp(2rem, 3.5vw, 3.6rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.055em;
+  text-transform: uppercase;
+  text-shadow: 3px 3px 0 rgba(255, 69, 58, 0.18);
+}
+
+.hero-subtitle em {
   color: transparent;
   font-style: normal;
   -webkit-text-stroke: 2px var(--yellow);
@@ -980,7 +991,7 @@ input:focus-visible {
   }
 
   .hero-copy h2 {
-    font-size: clamp(3.5rem, 15vw, 7rem);
+    font-size: clamp(2.8rem, 11.5vw, 6rem);
   }
 
   .game-layout {

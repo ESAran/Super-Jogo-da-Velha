@@ -12,6 +12,8 @@ interface HistoryEntry {
 }
 
 const HISTORY_KEY = "sjv84.history.v1";
+const SAY_MY_NAME_KEY = "sjv84.achievement.say-my-name.v1";
+const UNNAMED_KEY = "sjv84.achievement.unnamed.v1";
 
 function escapeHtml(value: string): string {
   return value
@@ -30,6 +32,8 @@ export class GameApp {
   private lastMove: { mini: number; cell: number } | null = null;
   private matchSaved = false;
   private notice = "";
+  private sayMyNameUnlocked = this.readAchievement(SAY_MY_NAME_KEY);
+  private unnamedUnlocked = this.readAchievement(UNNAMED_KEY);
 
   constructor(root: HTMLElement) {
     this.root = root;
@@ -122,6 +126,34 @@ export class GameApp {
       this.matchSaved = false;
       this.lastMove = null;
       this.notice = "SISTEMA SINCRONIZADO // JOGADOR 1 INICIA";
+      const unlockedNames: string[] = [];
+      if (
+        !this.sayMyNameUnlocked &&
+        [playerOne, playerTwo].some((player) => player.name.toLowerCase() === "heisenberg")
+      ) {
+        this.sayMyNameUnlocked = true;
+        try {
+          localStorage.setItem(SAY_MY_NAME_KEY, "true");
+        } catch {
+          // Mantem a conquista nesta sessao mesmo sem armazenamento disponivel.
+        }
+        unlockedNames.push("Say my name.");
+      }
+      if (
+        !this.unnamedUnlocked &&
+        [playerOne, playerTwo].some((player) => player.name.toLowerCase() === "valdemort")
+      ) {
+        this.unnamedUnlocked = true;
+        try {
+          localStorage.setItem(UNNAMED_KEY, "true");
+        } catch {
+          // Mantem a conquista nesta sessao mesmo sem armazenamento disponivel.
+        }
+        unlockedNames.push("AQUELE QUE NÃO DEVE SER NOMEADO");
+      }
+      if (unlockedNames.length > 0) {
+        this.notice = `CONQUISTA LIBERADA // ${unlockedNames.join(" // ")}`;
+      }
       this.screen = "game";
       this.render();
     } catch (error) {
@@ -208,6 +240,14 @@ export class GameApp {
     }
   }
 
+  private readAchievement(key: string): boolean {
+    try {
+      return localStorage.getItem(key) === "true";
+    } catch {
+      return false;
+    }
+  }
+
   private readHistory(): HistoryEntry[] {
     try {
       const stored = localStorage.getItem(HISTORY_KEY);
@@ -280,12 +320,13 @@ export class GameApp {
       <section class="menu-layout">
         <div class="hero-copy">
           <p class="signal">SINAL DETECTADO // 09 SETORES ATIVOS</p>
-          <h2>Nove jogos.<br><em>Uma guerra.</em></h2>
+          <h2>Super Jogo<br>da Velha</h2>
+          <p class="hero-subtitle">Nove jogos.<br><em>Uma guerra.</em></p>
           <p class="intro">
             Cada movimento reprograma o destino do adversario. Domine tres setores
             antes que o sistema domine voce.
           </p>
-          <div class="version-line"><span></span>BUILD WEB 0.2 // SEM CONEXAO EXTERNA</div>
+          <div class="version-line"><span></span>WEB 1.0.0 // SEM CONEXAO EXTERNA</div>
         </div>
 
         <nav class="main-menu" aria-label="Menu principal">
@@ -321,13 +362,13 @@ export class GameApp {
         <form class="player-form" data-player-form>
           <fieldset class="player-config player-one">
             <legend>JOGADOR 1</legend>
-            <label>NOME DE OPERADOR<input name="player-one" maxlength="18" value="Alice" required /></label>
+            <label>NOME DE OPERADOR<input name="player-one" maxlength="18" value="Godric" required /></label>
             <label>SIMBOLO<input name="symbol-one" maxlength="1" value="X" required /></label>
           </fieldset>
           <div class="versus-mark">VS</div>
           <fieldset class="player-config player-two">
             <legend>JOGADOR 2</legend>
-            <label>NOME DE OPERADOR<input name="player-two" maxlength="18" value="Bruno" required /></label>
+            <label>NOME DE OPERADOR<input name="player-two" maxlength="18" value="Salazar" required /></label>
             <label>SIMBOLO<input name="symbol-two" maxlength="1" value="O" required /></label>
           </fieldset>
           <div class="form-actions">
@@ -500,6 +541,18 @@ export class GameApp {
       { code: "A-01", name: "PRIMEIRO SINAL", detail: "Conclua uma partida", unlocked: history.length >= 1 },
       { code: "A-02", name: "DOMINADOR", detail: "Venca uma partida", unlocked: history.some((entry) => entry.winner !== null) },
       { code: "A-03", name: "ARQUIVISTA", detail: "Conclua cinco partidas", unlocked: history.length >= 5 },
+      {
+        code: "A-04",
+        name: this.sayMyNameUnlocked ? "Say my name." : "CONQUISTA SECRETA",
+        detail: this.sayMyNameUnlocked ? "Inicie uma partida usando o nome Heisenberg" : "???",
+        unlocked: this.sayMyNameUnlocked,
+      },
+      {
+        code: "A-05",
+        name: this.unnamedUnlocked ? "AQUELE QUE NÃO DEVE SER NOMEADO" : "CONQUISTA SECRETA",
+        detail: this.unnamedUnlocked ? "Inicie uma partida usando o nome valdemort" : "???",
+        unlocked: this.unnamedUnlocked,
+      },
     ];
 
     return this.renderInfoPanel(
