@@ -19,7 +19,16 @@ function startMatch(app: GameApp, first: string, second: string): void {
   app["startMatch"](data);
 }
 
-describe("Conquistas secretas", () => {
+function finishMatch(app: GameApp, won = true): void {
+  startMatch(app, "Godric", "Salazar");
+  const game = app["game"]!;
+  game.finished = true;
+  game.winner = won ? game.playerOne : null;
+  game.draw = !won;
+  app["saveCurrentMatch"]();
+}
+
+describe("Conquistas", () => {
   const originalStorage = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
 
   beforeEach(() => {
@@ -94,5 +103,61 @@ describe("Conquistas secretas", () => {
     const html = createApp()["renderSetup"]();
     assert.match(html, /value="Godric"/u);
     assert.match(html, /value="Salazar"/u);
+  });
+
+  it("libera LIÃO! apenas na decima vitoria e nao conta a mesma partida duas vezes", () => {
+    const app = createApp();
+    for (let index = 0; index < 9; index += 1) finishMatch(app);
+    assert.equal(app["tenWinsUnlocked"], false);
+    assert.equal(app["totalWins"], 9);
+    app["saveCurrentMatch"]();
+    assert.equal(app["totalWins"], 9);
+    finishMatch(app);
+    assert.equal(app["tenWinsUnlocked"], true);
+    assert.match(app["notice"], /CONQUISTA LIBERADA \/\/ LIÃO!/u);
+    assert.equal(createApp()["tenWinsUnlocked"], true);
+  });
+
+  it("ignora empates e partidas em andamento", () => {
+    const app = createApp();
+    for (let index = 0; index < 10; index += 1) finishMatch(app, false);
+    startMatch(app, "Godric", "Salazar");
+    app["saveCurrentMatch"]();
+    assert.equal(app["totalWins"], 0);
+    assert.equal(app["tenWinsUnlocked"], false);
+  });
+
+  it("preserva progresso e desbloqueio alem das ultimas 20 partidas", () => {
+    const app = createApp();
+    for (let index = 0; index < 9; index += 1) finishMatch(app);
+    for (let index = 0; index < 21; index += 1) finishMatch(app, false);
+    const restored = createApp();
+    assert.equal(restored["totalWins"], 9);
+    finishMatch(restored);
+    for (let index = 0; index < 21; index += 1) finishMatch(restored, false);
+    assert.equal(restored["readHistory"]().length, 20);
+    assert.equal(createApp()["tenWinsUnlocked"], true);
+  });
+
+  it("aproveita vitorias do historico anterior sem somar novamente a cada abertura", () => {
+    localStorage.setItem("sjv84.history.v1", JSON.stringify([
+      ...Array.from({ length: 9 }, () => ({ winner: "Godric" })),
+      { winner: null },
+    ]));
+    const app = createApp();
+    assert.equal(app["totalWins"], 9);
+    finishMatch(app);
+    assert.equal(createApp()["totalWins"], 10);
+    assert.equal(createApp()["totalWins"], 10);
+  });
+
+  it("conta vitorias na sessao mesmo sem acesso ao armazenamento", () => {
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      get() { throw new Error("Armazenamento bloqueado"); },
+    });
+    const app = createApp();
+    for (let index = 0; index < 10; index += 1) finishMatch(app);
+    assert.equal(app["tenWinsUnlocked"], true);
   });
 });

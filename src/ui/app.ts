@@ -14,6 +14,8 @@ interface HistoryEntry {
 const HISTORY_KEY = "sjv84.history.v1";
 const SAY_MY_NAME_KEY = "sjv84.achievement.say-my-name.v1";
 const UNNAMED_KEY = "sjv84.achievement.unnamed.v1";
+const TOTAL_WINS_KEY = "sjv84.total-wins.v1";
+const TEN_WINS_KEY = "sjv84.achievement.ten-wins.v1";
 
 function escapeHtml(value: string): string {
   return value
@@ -34,6 +36,8 @@ export class GameApp {
   private notice = "";
   private sayMyNameUnlocked = this.readAchievement(SAY_MY_NAME_KEY);
   private unnamedUnlocked = this.readAchievement(UNNAMED_KEY);
+  private totalWins = this.readTotalWins();
+  private tenWinsUnlocked = this.readAchievement(TEN_WINS_KEY) || this.totalWins >= 10;
 
   constructor(root: HTMLElement) {
     this.root = root;
@@ -208,7 +212,6 @@ export class GameApp {
 
       if (this.game.finished && !this.matchSaved) {
         this.saveCurrentMatch();
-        this.matchSaved = true;
       }
 
       this.render();
@@ -220,7 +223,7 @@ export class GameApp {
   }
 
   private saveCurrentMatch(): void {
-    if (this.game === null) {
+    if (this.game === null || !this.game.finished || this.matchSaved) {
       return;
     }
 
@@ -233,10 +236,33 @@ export class GameApp {
       playedAt: new Date().toISOString(),
     });
 
+    this.matchSaved = true;
+    if (this.game.winner !== null) {
+      this.totalWins += 1;
+      if (!this.tenWinsUnlocked && this.totalWins >= 10) {
+        this.tenWinsUnlocked = true;
+        this.notice = "CONQUISTA LIBERADA // LIÃO!";
+      }
+    }
+
     try {
+      localStorage.setItem(TOTAL_WINS_KEY, String(this.totalWins));
+      if (this.tenWinsUnlocked) {
+        localStorage.setItem(TEN_WINS_KEY, "true");
+      }
       localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 20)));
     } catch {
       // O jogo continua funcionando mesmo quando o navegador bloqueia armazenamento local.
+    }
+  }
+
+  private readTotalWins(): number {
+    const historyWins = this.readHistory().filter((entry) => typeof entry?.winner === "string").length;
+    try {
+      const saved = Number(localStorage.getItem(TOTAL_WINS_KEY));
+      return Number.isSafeInteger(saved) && saved >= 0 ? Math.max(saved, historyWins) : historyWins;
+    } catch {
+      return historyWins;
     }
   }
 
@@ -553,6 +579,7 @@ export class GameApp {
         detail: this.unnamedUnlocked ? "Inicie uma partida usando o nome valdemort" : "???",
         unlocked: this.unnamedUnlocked,
       },
+      { code: "A-06", name: "LIÃO!", detail: "Vença 10 partidas", unlocked: this.tenWinsUnlocked },
     ];
 
     return this.renderInfoPanel(
