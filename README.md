@@ -1,4 +1,4 @@
-# Super Jogo da Velha // SJV-84
+# Super Jogo da Velha
 
 Versao web do Super Jogo da Velha, executada inteiramente no navegador. O projeto nao depende de API ou servidor Python para jogar.
 
