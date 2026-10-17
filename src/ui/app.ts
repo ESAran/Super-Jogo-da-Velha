@@ -385,7 +385,7 @@ export class GameApp {
     return `
       <header class="system-header">
         <div class="brand-lockup">
-          <span class="eyebrow">SJV-84 // REDE LOCAL</span>
+          <span class="eyebrow">REDE LOCAL</span>
           <h1 class="glitch" data-text="SUPER JOGO DA VELHA">SUPER JOGO DA VELHA</h1>
         </div>
         <button class="sound-toggle" data-action="toggle-sound" type="button" aria-label="Alternar som">
