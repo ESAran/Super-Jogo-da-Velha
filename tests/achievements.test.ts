@@ -28,6 +28,36 @@ function finishMatch(app: GameApp, won = true): void {
   app["saveCurrentMatch"]();
 }
 
+// Prepara um tabuleiro sem vencedor; a ultima jogada passa pelo motor real.
+function prepareBombonera(
+  app: GameApp,
+  first = "Vasco",
+  second = "Boca",
+  winnerIndex = 0,
+  winnerQuadrants = 3,
+  opponentQuadrants = 4,
+): void {
+  startMatch(app, first, second);
+  const game = app["game"]!;
+  const winner = winnerIndex === 0 ? game.playerOne : game.playerTwo;
+  const opponent = winnerIndex === 0 ? game.playerTwo : game.playerOne;
+  for (const mini of [0, 1, 8].slice(0, winnerQuadrants - 1)) {
+    for (const cell of [0, 1, 2]) game.board.place(mini, cell, winner.symbol);
+  }
+  for (const mini of [3, 4, 6, 7].slice(0, opponentQuadrants)) {
+    for (const cell of [0, 1, 2]) game.board.place(mini, cell, opponent.symbol);
+  }
+  game.board.place(2, 0, winner.symbol);
+  game.board.place(2, 1, winner.symbol);
+  game.currentPlayer = winner;
+  assert.equal(game.board.getWinner(), null);
+}
+
+function playWinningMove(app: GameApp): void {
+  app["playCell"]({ dataset: { mini: "2", cell: "2" } } as unknown as HTMLButtonElement);
+  assert.equal(app["game"]!.finished, true);
+}
+
 describe("Conquistas", () => {
   const originalStorage = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
 
@@ -52,8 +82,8 @@ describe("Conquistas", () => {
 
   it("oculta nomes e instrucoes antes de desbloquear", () => {
     const html = createApp()["renderAchievements"]();
-    assert.equal((html.match(/CONQUISTA SECRETA/g) ?? []).length, 2);
-    assert.doesNotMatch(html, /Heisenberg|valdemort|Say my name|AQUELE QUE/u);
+    assert.equal((html.match(/CONQUISTA SECRETA/g) ?? []).length, 3);
+    assert.doesNotMatch(html, /Heisenberg|valdemort|Say my name|AQUELE QUE|Vasco|Boca|quadrantes/u);
   });
 
   for (const [name, title] of [
@@ -78,7 +108,7 @@ describe("Conquistas", () => {
     startMatch(app, "Heisenberg", "valdemort");
     assert.match(app["notice"], /Say my name\./u);
     assert.match(app["notice"], /AQUELE QUE NÃO DEVE SER NOMEADO/u);
-    assert.doesNotMatch(app["renderAchievements"](), /CONQUISTA SECRETA/u);
+    assert.equal((app["renderAchievements"]().match(/CONQUISTA SECRETA/g) ?? []).length, 1);
   });
 
   it("nao desbloqueia nomes parecidos nem partidas invalidas", () => {
@@ -96,7 +126,7 @@ describe("Conquistas", () => {
     });
     const app = createApp();
     startMatch(app, "Heisenberg", "valdemort");
-    assert.doesNotMatch(app["renderAchievements"](), /CONQUISTA SECRETA/u);
+    assert.equal((app["renderAchievements"]().match(/CONQUISTA SECRETA/g) ?? []).length, 1);
   });
 
   it("mantem Godric e Salazar como nomes iniciais", () => {
@@ -159,5 +189,69 @@ describe("Conquistas", () => {
     const app = createApp();
     for (let index = 0; index < 10; index += 1) finishMatch(app);
     assert.equal(app["tenWinsUnlocked"], true);
+  });
+
+  for (const winnerIndex of [0, 1]) {
+    it(`libera Vasco na Bombonera com Vasco no jogador ${winnerIndex + 1} e persiste`, () => {
+      const app = createApp();
+      const names = winnerIndex === 0 ? ["  VASCO  ", "bOcA"] : ["bOcA", "  VASCO  "];
+      prepareBombonera(app, names[0], names[1], winnerIndex);
+      assert.equal(app["bomboneraUnlocked"], false);
+      playWinningMove(app);
+      assert.equal(app["bomboneraUnlocked"], true);
+      assert.match(app["notice"], /Vasco na Bombonera/u);
+      assert.match(app["renderAchievements"](), /Vasco na Bombonera/u);
+      assert.equal(createApp()["bomboneraUnlocked"], true);
+    });
+  }
+
+  for (const [winnerCount, opponentCount] of [[3, 3], [4, 3]]) {
+    it(`nao libera com ${winnerCount} quadrantes contra ${opponentCount}`, () => {
+      const app = createApp();
+      prepareBombonera(app, "Vasco", "Boca", 0, winnerCount, opponentCount);
+      playWinningMove(app);
+      assert.equal(app["bomboneraUnlocked"], false);
+    });
+  }
+
+  for (const [first, second] of [["Boca", "Vasco"], ["Vasco2", "Boca"], ["Vasco", "Boca2"]]) {
+    it(`nao libera quando ${first} vence ${second}`, () => {
+      const app = createApp();
+      prepareBombonera(app, first, second);
+      playWinningMove(app);
+      assert.equal(app["bomboneraUnlocked"], false);
+    });
+  }
+
+  it("nao libera apenas pelos nomes, em partida aberta ou empate", () => {
+    const app = createApp();
+    prepareBombonera(app);
+    app["saveCurrentMatch"]();
+    assert.equal(app["bomboneraUnlocked"], false);
+    app["game"]!.finished = true;
+    app["game"]!.draw = true;
+    app["saveCurrentMatch"]();
+    assert.equal(app["bomboneraUnlocked"], false);
+  });
+
+  it("anuncia LIÃO! e Vasco na Bombonera na mesma vitoria sem duplicar progresso", () => {
+    localStorage.setItem("sjv84.total-wins.v1", "9");
+    const app = createApp();
+    prepareBombonera(app);
+    playWinningMove(app);
+    assert.match(app["notice"], /LIÃO! \/\/ Vasco na Bombonera/u);
+    app["saveCurrentMatch"]();
+    assert.equal(app["totalWins"], 10);
+  });
+
+  it("mantem Vasco na Bombonera na sessao sem armazenamento", () => {
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      get() { throw new Error("Armazenamento bloqueado"); },
+    });
+    const app = createApp();
+    prepareBombonera(app);
+    playWinningMove(app);
+    assert.equal(app["bomboneraUnlocked"], true);
   });
 });

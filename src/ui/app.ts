@@ -1,4 +1,5 @@
 import { GameEngine, Player } from "../game/engine";
+import { BasicMachineStrategy, MachineStrategy } from "../game/machine";
 import { GameAudio } from "./audio";
 
 type Screen = "menu" | "setup" | "game" | "rules" | "history" | "credits" | "achievements";
@@ -8,6 +9,7 @@ interface HistoryEntry {
   playerOne: string;
   playerTwo: string;
   winner: string | null;
+  winnerKind?: "human" | "machine";
   playedAt: string;
 }
 
@@ -16,6 +18,7 @@ const SAY_MY_NAME_KEY = "sjv84.achievement.say-my-name.v1";
 const UNNAMED_KEY = "sjv84.achievement.unnamed.v1";
 const TOTAL_WINS_KEY = "sjv84.total-wins.v1";
 const TEN_WINS_KEY = "sjv84.achievement.ten-wins.v1";
+const BOMBONERA_KEY = "sjv84.achievement.vasco-na-bombonera.v1";
 
 function escapeHtml(value: string): string {
   return value
@@ -31,6 +34,8 @@ export class GameApp {
   private readonly audio = new GameAudio();
   private screen: Screen = "menu";
   private game: GameEngine | null = null;
+  private machineMode = false;
+  private machineTimer: ReturnType<typeof setTimeout> | null = null;
   private lastMove: { mini: number; cell: number } | null = null;
   private matchSaved = false;
   private notice = "";
@@ -38,8 +43,9 @@ export class GameApp {
   private unnamedUnlocked = this.readAchievement(UNNAMED_KEY);
   private totalWins = this.readTotalWins();
   private tenWinsUnlocked = this.readAchievement(TEN_WINS_KEY) || this.totalWins >= 10;
+  private bomboneraUnlocked = this.readAchievement(BOMBONERA_KEY);
 
-  constructor(root: HTMLElement) {
+  constructor(root: HTMLElement, private readonly machineStrategy: MachineStrategy = new BasicMachineStrategy()) {
     this.root = root;
     this.bindEvents();
     this.render();
@@ -80,11 +86,12 @@ export class GameApp {
 
     switch (action) {
       case "local-game":
+        this.machineMode = false;
         this.goTo("setup");
         break;
       case "machine-game":
-        this.notice = "MODULO IA AINDA FORA DE LINHA";
-        this.render();
+        this.machineMode = true;
+        this.goTo("setup");
         break;
       case "rules":
       case "history":
@@ -93,6 +100,7 @@ export class GameApp {
         this.goTo(action);
         break;
       case "menu":
+        this.cancelMachineTurn();
         this.game = null;
         this.goTo("menu");
         break;
@@ -119,13 +127,15 @@ export class GameApp {
     try {
       const playerOne = new Player(
         String(data.get("player-one") ?? ""),
-        String(data.get("symbol-one") ?? ""),
+        this.machineMode ? "X" : String(data.get("symbol-one") ?? ""),
       );
       const playerTwo = new Player(
-        String(data.get("player-two") ?? ""),
-        String(data.get("symbol-two") ?? ""),
+        this.machineMode ? "Computador" : String(data.get("player-two") ?? ""),
+        this.machineMode ? "O" : String(data.get("symbol-two") ?? ""),
+        this.machineMode ? "machine" : "human",
       );
 
+      this.cancelMachineTurn();
       this.game = new GameEngine(playerOne, playerTwo);
       this.matchSaved = false;
       this.lastMove = null;
@@ -172,9 +182,10 @@ export class GameApp {
       return;
     }
 
+    this.cancelMachineTurn();
     this.game = new GameEngine(
-      new Player(this.game.playerOne.name, this.game.playerOne.symbol),
-      new Player(this.game.playerTwo.name, this.game.playerTwo.symbol),
+      new Player(this.game.playerOne.name, this.game.playerOne.symbol, this.game.playerOne.kind),
+      new Player(this.game.playerTwo.name, this.game.playerTwo.symbol, this.game.playerTwo.kind),
     );
     this.matchSaved = false;
     this.lastMove = null;
@@ -182,13 +193,33 @@ export class GameApp {
     this.render();
   }
 
-  private playCell(button: HTMLButtonElement): void {
-    if (this.game === null) {
-      return;
-    }
+  private cancelMachineTurn(): void {
+    if (this.machineTimer !== null) clearTimeout(this.machineTimer);
+    this.machineTimer = null;
+  }
 
-    const mini = Number(button.dataset.mini);
-    const cell = Number(button.dataset.cell);
+  private isMachineTurn(): boolean {
+    return this.game !== null && !this.game.finished && this.game.currentPlayer.kind === "machine";
+  }
+
+  private scheduleMachineTurn(): void {
+    if (!this.isMachineTurn() || this.machineTimer !== null) return;
+    const game = this.game;
+    this.machineTimer = setTimeout(() => {
+      this.machineTimer = null;
+      if (this.game !== game || this.screen !== "game" || !this.isMachineTurn()) return;
+      const move = this.machineStrategy.chooseMove(game!);
+      if (move !== null) this.performMove(move.mini, move.cell);
+    }, 700);
+  }
+
+  private playCell(button: HTMLButtonElement): void {
+    if (this.game === null || this.isMachineTurn()) return;
+    this.performMove(Number(button.dataset.mini), Number(button.dataset.cell));
+  }
+
+  private performMove(mini: number, cell: number): void {
+    if (this.game === null) return;
     const playerIndex = this.game.currentPlayer === this.game.playerOne ? 0 : 1;
 
     try {
@@ -214,6 +245,7 @@ export class GameApp {
         this.saveCurrentMatch();
       }
 
+      this.scheduleMachineTurn();
       this.render();
     } catch (error) {
       this.audio.error();
@@ -233,22 +265,44 @@ export class GameApp {
       playerOne: this.game.playerOne.name,
       playerTwo: this.game.playerTwo.name,
       winner: this.game.winner?.name ?? null,
+      winnerKind: this.game.winner?.kind,
       playedAt: new Date().toISOString(),
     });
 
     this.matchSaved = true;
-    if (this.game.winner !== null) {
+    const unlockedNames: string[] = [];
+    if (this.game.winner !== null && this.game.winner.kind === "human") {
       this.totalWins += 1;
       if (!this.tenWinsUnlocked && this.totalWins >= 10) {
         this.tenWinsUnlocked = true;
-        this.notice = "CONQUISTA LIBERADA // LIÃO!";
+        unlockedNames.push("LIÃO!");
       }
+      const winner = this.game.winner;
+      const opponent = winner === this.game.playerOne ? this.game.playerTwo : this.game.playerOne;
+      const quadrants = this.game.board.getMacroCells();
+      const winnerQuadrants = quadrants.filter((symbol) => symbol === winner.symbol).length;
+      const opponentQuadrants = quadrants.filter((symbol) => symbol === opponent.symbol).length;
+      if (
+        !this.bomboneraUnlocked &&
+        winner.name.toLowerCase() === "vasco" &&
+        opponent.name.toLowerCase() === "boca" &&
+        winnerQuadrants < opponentQuadrants
+      ) {
+        this.bomboneraUnlocked = true;
+        unlockedNames.push("Vasco na Bombonera");
+      }
+    }
+    if (unlockedNames.length > 0) {
+      this.notice = `CONQUISTA LIBERADA // ${unlockedNames.join(" // ")}`;
     }
 
     try {
       localStorage.setItem(TOTAL_WINS_KEY, String(this.totalWins));
       if (this.tenWinsUnlocked) {
         localStorage.setItem(TEN_WINS_KEY, "true");
+      }
+      if (this.bomboneraUnlocked) {
+        localStorage.setItem(BOMBONERA_KEY, "true");
       }
       localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 20)));
     } catch {
@@ -257,7 +311,7 @@ export class GameApp {
   }
 
   private readTotalWins(): number {
-    const historyWins = this.readHistory().filter((entry) => typeof entry?.winner === "string").length;
+    const historyWins = this.readHistory().filter((entry) => typeof entry?.winner === "string" && entry.winnerKind !== "machine").length;
     try {
       const saved = Number(localStorage.getItem(TOTAL_WINS_KEY));
       return Number.isSafeInteger(saved) && saved >= 0 ? Math.max(saved, historyWins) : historyWins;
@@ -363,8 +417,8 @@ export class GameApp {
           </button>
           <button class="menu-option" data-action="machine-game" type="button">
             <span class="option-code">02</span>
-            <span><strong>JOGADOR VS MAQUINA</strong><small>modulo em desenvolvimento</small></span>
-            <span class="option-arrow">×</span>
+            <span><strong>JOGADOR VS MAQUINA</strong><small>duelo contra o computador // iniciar</small></span>
+            <span class="option-arrow">↗</span>
           </button>
           <div class="menu-grid">
             <button data-action="rules" type="button">REGRAS</button>
@@ -383,19 +437,19 @@ export class GameApp {
       <section class="panel setup-panel">
         <div class="panel-heading">
           <span>CONFIGURACAO DE IDENTIDADE</span>
-          <strong>01 / 02</strong>
+          <strong>${this.machineMode ? "VS MAQUINA" : "01 / 02"}</strong>
         </div>
         <form class="player-form" data-player-form>
           <fieldset class="player-config player-one">
             <legend>JOGADOR 1</legend>
             <label>NOME DE OPERADOR<input name="player-one" maxlength="18" value="Godric" required /></label>
-            <label>SIMBOLO<input name="symbol-one" maxlength="1" value="X" required /></label>
+            <label>SIMBOLO<input name="symbol-one" maxlength="1" value="X" ${this.machineMode ? "readonly" : ""} required /></label>
           </fieldset>
           <div class="versus-mark">VS</div>
           <fieldset class="player-config player-two">
-            <legend>JOGADOR 2</legend>
-            <label>NOME DE OPERADOR<input name="player-two" maxlength="18" value="Salazar" required /></label>
-            <label>SIMBOLO<input name="symbol-two" maxlength="1" value="O" required /></label>
+            <legend>${this.machineMode ? "COMPUTADOR" : "JOGADOR 2"}</legend>
+            <label>NOME DE OPERADOR<input name="player-two" maxlength="18" value="${this.machineMode ? "Computador" : "Salazar"}" ${this.machineMode ? "readonly" : ""} required /></label>
+            <label>SIMBOLO<input name="symbol-two" maxlength="1" value="O" ${this.machineMode ? "readonly" : ""} required /></label>
           </fieldset>
           <div class="form-actions">
             <button class="ghost-button" data-action="menu" type="button">← CANCELAR</button>
@@ -430,7 +484,7 @@ export class GameApp {
         </aside>
 
         <div class="board-stage">
-          <div class="board-meta"><span>GRADE PRINCIPAL // 3×3</span><b>CLIQUE PARA MARCAR</b></div>
+          <div class="board-meta"><span>GRADE PRINCIPAL // 3×3</span><b>${game.finished ? "PARTIDA ENCERRADA" : this.isMachineTurn() ? "MAQUINA ESCOLHENDO JOGADA..." : "SUA VEZ DE MARCAR"}</b></div>
           <div class="ultimate-board" role="grid" aria-label="Super Jogo da Velha">
             ${game.board.getMiniBoards().map((_, index) => this.renderMiniBoard(index)).join("")}
           </div>
@@ -452,7 +506,7 @@ export class GameApp {
             <span>ESTADO</span>
             <strong>${game.finished ? "ENCERRADO" : "EM CURSO"}</strong>
             <span>PROTOCOLO</span>
-            <strong>ULTIMATE / LOCAL</strong>
+            <strong>ULTIMATE / ${game.playerTwo.kind === "machine" ? "MAQUINA" : "LOCAL"}</strong>
           </div>
         </aside>
 
@@ -488,7 +542,7 @@ export class GameApp {
       <section class="mini-board ${playable ? "is-playable" : ""} ${winner !== null ? `is-won ${this.symbolClass(winner)}` : ""}" aria-label="Mini tabuleiro ${miniIndex + 1}">
         <span class="mini-index">0${miniIndex + 1}</span>
         ${mini.getCells().map((cell, cellIndex) => {
-          const valid = this.game?.isMoveValid(miniIndex, cellIndex) ?? false;
+          const valid = !this.isMachineTurn() && (this.game?.isMoveValid(miniIndex, cellIndex) ?? false);
           const last = this.lastMove?.mini === miniIndex && this.lastMove.cell === cellIndex;
           return `
             <button
@@ -565,7 +619,7 @@ export class GameApp {
     const history = this.readHistory();
     const achievements = [
       { code: "A-01", name: "PRIMEIRO SINAL", detail: "Conclua uma partida", unlocked: history.length >= 1 },
-      { code: "A-02", name: "DOMINADOR", detail: "Venca uma partida", unlocked: history.some((entry) => entry.winner !== null) },
+      { code: "A-02", name: "DOMINADOR", detail: "Venca uma partida", unlocked: history.some((entry) => entry.winner !== null && entry.winnerKind !== "machine") },
       { code: "A-03", name: "ARQUIVISTA", detail: "Conclua cinco partidas", unlocked: history.length >= 5 },
       {
         code: "A-04",
@@ -580,6 +634,14 @@ export class GameApp {
         unlocked: this.unnamedUnlocked,
       },
       { code: "A-06", name: "LIÃO!", detail: "Vença 10 partidas", unlocked: this.tenWinsUnlocked },
+      {
+        code: "A-07",
+        name: this.bomboneraUnlocked ? "Vasco na Bombonera" : "CONQUISTA SECRETA",
+        detail: this.bomboneraUnlocked
+          ? "Vença como Vasco contra Boca, conquistando menos quadrantes que o adversário"
+          : "???",
+        unlocked: this.bomboneraUnlocked,
+      },
     ];
 
     return this.renderInfoPanel(

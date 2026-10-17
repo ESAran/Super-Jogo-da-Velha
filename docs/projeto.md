@@ -23,6 +23,7 @@ Essa separacao permite trocar a apresentacao, adicionar uma inteligencia artific
 ## Escopo atual
 
 - jogador contra jogador no mesmo dispositivo;
+- jogador contra máquina básica: conquistar, bloquear ou sortear, com pausa de 0,7 segundo;
 - menu, cadastro, regras, historico, conquistas e creditos;
 - motor completo do Super Jogo da Velha;
 - funcionamento offline durante a execucao local;
@@ -30,7 +31,7 @@ Essa separacao permite trocar a apresentacao, adicionar uma inteligencia artific
 
 ## Evolucao futura
 
-1. Implementar jogador contra maquina com estrategias separadas do motor.
+1. Evoluir o desafio da maquina, cuja estrategia ja esta separada do motor.
 2. Refinar animacoes, trilha e acessibilidade.
 3. Avaliar instalacao como PWA.
 4. Somente depois avaliar salas online e backend em tempo real.
