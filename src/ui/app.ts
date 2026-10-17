@@ -1,3 +1,4 @@
+import { mountRulesDemo, rulesDemoFrame } from "./rules-demo";
 import { GameEngine, Player } from "../game/engine";
 import { BasicMachineStrategy, MachineStrategy } from "../game/machine";
 import { GameAudio } from "./audio";
@@ -32,6 +33,7 @@ function escapeHtml(value: string): string {
 export class GameApp {
   private readonly root: HTMLElement;
   private readonly audio = new GameAudio();
+  private disposeRulesDemo: (() => void) | undefined;
   private screen: Screen = "menu";
   private game: GameEngine | null = null;
   private machineMode = false;
@@ -343,6 +345,7 @@ export class GameApp {
   }
 
   private render(): void {
+    this.disposeRulesDemo?.();
     let content = "";
 
     switch (this.screen) {
@@ -377,6 +380,7 @@ export class GameApp {
         ${content}
       </main>
     `;
+    this.disposeRulesDemo = this.screen === "rules" ? mountRulesDemo(this.root) : undefined;
   }
 
   private renderHeader(): string {
@@ -588,14 +592,21 @@ export class GameApp {
 
   private renderRules(): string {
     return this.renderInfoPanel(
-      "PROTOCOLO DE JOGO",
+      "COMO JOGAR",
       `
-        <div class="rules-grid">
-          <article><b>01</b><h3>ESCOLHA UM SETOR</h3><p>A primeira jogada pode acontecer em qualquer um dos nove mini tabuleiros.</p></article>
-          <article><b>02</b><h3>REPROGRAME A ROTA</h3><p>A posicao marcada determina em qual mini tabuleiro o adversario devera jogar.</p></article>
-          <article><b>03</b><h3>DOMINE A GRADE</h3><p>Forme uma linha de tres para dominar um mini tabuleiro no mapa principal.</p></article>
-          <article><b>04</b><h3>QUEBRE O SISTEMA</h3><p>Domine tres setores alinhados para vencer. Se o destino estiver fechado, a rota fica livre.</p></article>
+        <header class="rules-intro"><span class="lesson-kicker">9 MINI TABULEIROS. UMA GRANDE DISPUTA.</span><h1>Uma jogada decide<br>o próximo destino.</h1><p>Jogue o jogo da velha dentro de cada mini tabuleiro.<br>Conquiste <strong>três minis em linha</strong> para vencer a partida.</p></header>
+        <section class="rules-lesson" aria-label="Demonstração das jogadas">
+          <div class="lesson-frame" data-lesson-frame>${rulesDemoFrame(0)}</div>
+          <div class="lesson-controls"><span>EXEMPLO ANIMADO</span><div><button type="button" data-lesson-play>▶ Reproduzir</button><button type="button" data-lesson-next>Próximo →</button><button type="button" data-lesson-reset aria-label="Reiniciar demonstração">↺</button></div></div>
+        </section>
+        <h2 class="rules-reference-title">Bateu a dúvida? Consulte aqui.</h2>
+        <div class="rules-grid rules-reference">
+          <article><b>01 / ONDE JOGAR</b><h3>A casa indica o destino</h3><p>Primeira jogada: qualquer casa. Depois, jogue no mini indicado pela última casa marcada pelo adversário. Escolha uma casa vazia dentro dele.</p></article>
+          <article><b>02 / COMO CONQUISTAR</b><h3>Três marcas ganham um mini</h3><p>Faça uma linha, coluna ou diagonal com seu símbolo. Esse mini fica conquistado e não recebe mais jogadas.</p></article>
+          <article><b>03 / COMO VENCER</b><h3>Três minis ganham o jogo</h3><p>Conquiste três mini tabuleiros alinhados na horizontal, vertical ou diagonal do tabuleiro grande. Não basta conquistar três em qualquer lugar.</p><div class="lesson-win" aria-label="Exemplo: três mini tabuleiros conquistados por X na primeira linha">${Array.from({length:9}, (_, i) => `<span class="${i < 3 ? 'won' : ''}">${i < 3 ? 'X' : '·'}</span>`).join('')}</div></article>
+          <article><b>04 / EXCEÇÕES</b><h3>Destino fechado? Escolha livre.</h3><p>Se o mini de destino já foi conquistado ou empatou, escolha qualquer mini ainda aberto. Um mini cheio sem vencedor fica empatado e não conta para ninguém.</p><p>Se todos os minis fecharem sem três conquistas alinhadas, a partida termina empatada.</p></article>
         </div>
+        <aside class="rules-tip"><strong>LEMBRETE RÁPIDO</strong><span>Casa escolhida → mini do adversário.<br>Três casas → um mini. Três minis em linha → vitória.</span></aside>
       `,
     );
   }

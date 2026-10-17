@@ -1113,3 +1113,52 @@ input:focus-visible {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Rules: animated walkthrough and quick reference. */
+.rules-intro { margin-bottom: 28px; }
+.lesson-kicker { color: var(--cyan); font-family: monospace; font-size: .72rem; letter-spacing: .09em; }
+.rules-intro h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); line-height: 1.12; margin: 16px 0; }
+.rules-intro p { color: #bcb4c9; line-height: 1.7; }
+.rules-intro strong { color: var(--yellow); }
+.rules-lesson { border: 1px solid #31515d; background: #0b101b; margin-bottom: 32px; }
+.lesson-frame { display: grid; grid-template-columns: 280px 1fr; align-items: center; gap: 32px; padding: 28px; }
+.lesson-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; aspect-ratio: 1; width: 100%; }
+.lesson-mini { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; padding: 5px; border: 1px solid #39334b; background: #171222; }
+.lesson-mini.available { border-color: #47727b; }
+.lesson-mini.destination { border: 2px solid var(--cyan); background: #12343c; box-shadow: 0 0 18px #00f0ff25; }
+.lesson-cell { display: grid; place-items: center; aspect-ratio: 1; background: #ffffff09; color: #fff; font: bold 18px monospace; }
+.lesson-cell.mark-x { color: var(--pink); background: #ff2a8b28; outline: 1px solid var(--pink); }
+.lesson-cell.mark-o { color: var(--cyan); background: #00f0ff22; outline: 1px solid var(--cyan); }
+.lesson-explanation h2 { font-size: 1.5rem; line-height: 1.25; margin: 14px 0; }
+.lesson-explanation p { color: #bcb4c9; line-height: 1.65; min-height: 104px; margin-bottom: 14px; }
+.lesson-status { color: var(--yellow); font-size: .8rem; }
+.lesson-dots { display: flex; gap: 6px; margin-top: 20px; }
+.lesson-dots i { width: 24px; height: 3px; background: #40394f; }
+.lesson-dots i.current { background: var(--cyan); }
+.lesson-controls { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid #31515d; padding: 12px 20px; }
+.lesson-controls > span { font: .65rem monospace; color: #bcb4c9; }
+.lesson-controls > div { display: flex; gap: 8px; }
+.lesson-controls button { border: 1px solid #4c465e; background: transparent; color: var(--ink); padding: 8px 12px; cursor: pointer; font-size: .75rem; }
+.lesson-controls button:hover { border-color: var(--cyan); color: var(--cyan); }
+.lesson-controls button:focus-visible { outline: 2px solid var(--yellow); outline-offset: 3px; }
+.rules-reference-title { font-size: 1.1rem; margin-bottom: 18px; }
+.rules-reference article { min-height: 0; }
+.rules-reference h3 { margin-top: 15px; text-transform: none; }
+.rules-reference p { color: #bcb4c9; }
+.rules-reference b { font-size: .72rem; }
+.lesson-win { display: grid; grid-template-columns: repeat(3, 22px); gap: 3px; margin-top: 14px; }
+.lesson-win span { text-align: center; background: #ffffff09; color: #777; }
+.lesson-win .won { color: var(--pink); background: #ff2a8b20; }
+.rules-tip { display: flex; align-items: center; gap: 24px; border-left: 3px solid var(--yellow); padding: 14px 18px; background: #ffe60008; margin: 0 0 28px; }
+.rules-tip strong { color: var(--yellow); font: .72rem monospace; }
+.rules-tip span { font-size: .85rem; line-height: 1.7; }
+@media (max-width: 650px) {
+  .lesson-frame { grid-template-columns: 1fr; padding: 20px; gap: 24px; }
+  .lesson-board { max-width: 280px; margin: auto; }
+  .lesson-explanation p { min-height: 0; }
+  .lesson-controls { flex-wrap: wrap; }
+  .rules-tip { flex-direction: column; align-items: flex-start; gap: 10px; }
+}
+.lesson-board, .lesson-mini { grid-template-rows: repeat(3, minmax(0, 1fr)); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.lesson-mini, .lesson-cell { min-width: 0; min-height: 0; }
+.lesson-cell { aspect-ratio: auto; }
