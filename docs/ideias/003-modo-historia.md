@@ -1,7 +1,7 @@
 # IDEIA-003 — Campanha, personagens e vidas
 
 - **Registrada em:** 15/10/2026.
-- **Atualizada em:** 16/10/2026.
+- **Atualizada em:** 17/10/2026.
 - **Origem:** usuário; sugestões do assistente separadas abaixo.
 - **Situação:** Em exploração.
 
@@ -51,3 +51,10 @@ Depende de uma máquina jogável, descrita em [IDEIA-002](002-modo-livre-contra-
 **Observação do usuário:** as partidas básicas estão rápidas e fáceis. Para uma campanha, será preciso pensar em elementos que aumentem o desafio e o tempo de jogo.
 
 **Possibilidade proposta:** uma run para terminar o jogo poderia durar aproximadamente **meia hora**. Trata-se de uma referência a avaliar, não uma duração obrigatória, nem de meia hora por partida. Ainda não estão definidas as mecânicas, a distribuição do tempo entre confrontos ou como equilibrar duração e dificuldade. A ideia fica guardada para uma feature futura.
+
+
+## Possibilidade de 17/10/2026 — dificuldade da campanha
+
+O usuário propôs considerar uma seleção de **Fácil, Médio ou Difícil** ao iniciar o modo história. A ideia está guardada para avaliação futura, não implementada nem com regras fechadas. Falta definir se o nível altera somente as decisões da máquina ou também os poderes, tempos, vidas e demais condições da campanha, e se poderá mudar durante a run.
+
+A lógica atual da máquina foi definida como fácil e a média foi autorizada e implementada localmente fora da campanha; o difícil ainda será planejado. Uma dificuldade impossível também foi proposta para o futuro, mas sua inclusão na campanha não foi decidida. Veja [IDEIA-004](004-habilidades-e-dificuldade.md).

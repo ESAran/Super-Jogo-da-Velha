@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
 import { GameEngine, Player } from "../src/game/engine";
-import { BasicMachineStrategy } from "../src/game/machine";
+import { BasicMachineStrategy, MediumMachineStrategy } from "../src/game/machine";
 import { GameApp } from "../src/ui/app";
 
 function game() {
@@ -126,4 +126,87 @@ it("encerra uma vitoria da maquina sem agendar outra jogada ou contar vitoria hu
   assert.equal(a["totalWins"], 0);
   assert.equal(a["matchSaved"], true);
   assert.equal(a["machineTimer"], null);
+});
+
+
+it("medio conecta a peca 7 com a posicao 4 e evita destino com conquista humana", () => {
+  const g = game();
+  g.requiredMini = 6;
+  g.board.place(6, 6, "O");
+  const bot = new MediumMachineStrategy(() => 0);
+  assert.deepEqual(bot.chooseMove(g), { mini: 6, cell: 0 });
+  // Bloqueia a diagonal para isolar a conexao vertical 1–4–7.
+  g.board.place(6, 2, "X");
+  g.board.place(0, 0, "X"); g.board.place(0, 1, "X");
+  assert.deepEqual(bot.chooseMove(g), { mini: 6, cell: 3 });
+  g.board.place(3, 0, "X"); g.board.place(3, 1, "X");
+  const before = JSON.stringify(g.board);
+  const move = bot.chooseMove(g)!;
+  assert.notEqual(move.cell, 3);
+  assert.notEqual(move.cell, 0);
+  assert.equal(JSON.stringify(g.board), before);
+});
+
+it("medio prioriza conquistar e bloquear antes de construir conexoes", () => {
+  const g = game();
+  g.requiredMini = 6;
+  g.board.place(6, 0, "X"); g.board.place(6, 1, "X");
+  g.board.place(6, 6, "O");
+  const bot = new MediumMachineStrategy(() => 0);
+  assert.deepEqual(bot.chooseMove(g), { mini: 6, cell: 2 });
+  g.board.place(6, 7, "O");
+  assert.deepEqual(bot.chooseMove(g), { mini: 6, cell: 8 });
+});
+
+it("medio avalia escolha livre quando envia a um quadrante fechado", () => {
+  const g = game();
+  g.requiredMini = 6;
+  for (const cell of [0, 1, 2]) g.board.place(0, cell, "O");
+  g.board.place(3, 0, "X"); g.board.place(3, 1, "X");
+  const move = new MediumMachineStrategy(() => 0).chooseMove(g)!;
+  assert.notEqual(move.cell, 0);
+  assert.notEqual(move.cell, 3);
+});
+
+it("medio simula o proprio destino apos bloquear a linha humana", () => {
+  const g = game();
+  g.requiredMini = 2;
+  g.board.place(2, 0, "X"); g.board.place(2, 1, "X");
+  assert.deepEqual(new MediumMachineStrategy(() => 0).chooseMove(g), { mini: 2, cell: 2 });
+});
+
+it("medio joga partidas completas validas contra facil", () => {
+  const medium = new MediumMachineStrategy();
+  const easy = new BasicMachineStrategy();
+  for (let match = 0; match < 20; match += 1) {
+    const g = game();
+    let turns = 0;
+    while (!g.finished) {
+      const bot = g.currentPlayer === g.playerTwo ? medium : easy;
+      const move = bot.chooseMove(g)!;
+      assert.ok(move && g.isMoveValid(move.mini, move.cell));
+      g.play(move.mini, move.cell);
+      assert.ok(++turns <= 81);
+    }
+    assert.equal(medium.chooseMove(g), null);
+  }
+});
+
+it("seleciona medio, usa sua estrategia e preserva dificuldade e nomes na revanche", (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const a = app();
+  const data = new FormData();
+  data.set("player-one", "Pessoa"); data.set("player-two", "Robo"); data.set("difficulty", "medium");
+  a["startMatch"](data);
+  const choose = t.mock.method(a["mediumStrategy"], "chooseMove");
+  play(a, 0, 4);
+  t.mock.timers.tick(700);
+  assert.equal(choose.mock.callCount(), 1);
+  a["restartMatch"]();
+  assert.equal(a["difficulty"], "medium");
+  assert.equal(a["game"]!.playerTwo.name, "Robo");
+  assert.match(a["renderSetup"](), /value="medium" selected/);
+  assert.match(a["renderSetup"](), /value="hard" disabled/);
+  a["machineMode"] = false;
+  assert.doesNotMatch(a["renderSetup"](), /name="difficulty"/);
 });

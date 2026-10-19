@@ -8,11 +8,16 @@ Registro inicial: **15/10/2026**. As ideias abaixo foram recuperadas das convers
 
 | ID | Ideia | Situação | Resumo |
 | --- | --- | --- | --- |
-| [IDEIA-001](001-identidade-visual.md) | Identidade visual retrô | Em exploração | Referências a Bandersnatch e Doom antigo, com mais cor, saturação, sons e animações. |
+| [IDEIA-001](001-identidade-visual.md) | Identidade visual retrô | Em exploração | Referências a Bandersnatch e Doom antigo; seleção de dificuldade por botões após concluir a identidade visual. |
 | [IDEIA-002](002-modo-livre-contra-maquina.md) | Modo livre contra a máquina | Implementada | Versão básica: conquistar, bloquear ou sortear; estratégia substituível, sem níveis ou história. |
-| [IDEIA-003](003-modo-historia.md) | Campanha e personagens | Em exploração | Sequência de personagens e vidas; run de cerca de meia hora como possibilidade, buscando mais desafio e duração. |
-| [IDEIA-004](004-habilidades-e-dificuldade.md) | Poderes e dificuldade | Em exploração | Teste revelou máquina fácil; aumentar o desafio em feature futura. Níveis, antecipação e pesos seguem em avaliação. |
+| [IDEIA-003](003-modo-historia.md) | Campanha e personagens | Em exploração | Sequência de personagens e vidas; run de cerca de meia hora e escolha de Fácil/Médio/Difícil como possibilidades. |
+| [IDEIA-004](004-habilidades-e-dificuldade.md) | Poderes e dificuldade | Em exploração | Fácil e Médio publicados; proposta de quatro níveis em avaliação, com topo muito difícil e vencível. Pesos atuais e testes documentados no guia. |
 | [IDEIA-005](005-plataforma-e-evolucao.md) | Web agora, evolução depois | Em avaliação futura | Manter a versão web e reconsiderar uma engine apenas se houver necessidade concreta. |
+| [IDEIA-006](006-intro-runa-dungeon.md) | Intro com runa e dungeon | Proposta | Tela preta durante o loading; uma runa em pedra aparece ao carregar e, ao clicar, ilumina a dungeon e leva ao menu. |
+
+## Guia para testar as dificuldades
+
+O [guia de dificuldades](../dificuldades/README.md) reúne a lógica atual, os pesos com exemplos de cálculo, limitações e uma ficha de observação para jogar e discutir ajustes. A proposta de quatro níveis ainda não altera o jogo publicado.
 
 ## Contexto já existente, não confundir com novas ideias
 

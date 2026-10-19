@@ -1,7 +1,7 @@
 # IDEIA-001 — Identidade visual retrô
 
 - **Registrada em:** 15/10/2026, a partir de conversas anteriores.
-- **Atualizada em:** 15/10/2026.
+- **Atualizada em:** 17/10/2026.
 - **Origem:** usuário; sugestões do assistente identificadas abaixo.
 - **Situação:** Em exploração.
 
@@ -37,3 +37,8 @@ Na conversa mais recente, surgiu a dúvida sobre fazer primeiro a identidade vis
 ## Relações
 
 A identidade dos personagens depende de [campanha e personagens](003-modo-historia.md). Os avisos e efeitos de interface dependem das regras de [habilidades e dificuldade](004-habilidades-e-dificuldade.md).
+
+
+## Preferência de 17/10/2026 — seleção de dificuldade
+
+O usuário esclareceu que imaginava escolher a dificuldade por botões, em vez da lista suspensa atual. Aceitou manter o seletor provisório para testar a lógica e compartilhar o jogo. A revisão desse controle fica para depois da conclusão da identidade visual; não foi solicitado redesenhar agora. Quantidade, disposição e estilo dos botões continuam por definir.

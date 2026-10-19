@@ -1,7 +1,7 @@
 # IDEIA-004 — Habilidades especiais e dificuldade
 
 - **Registrada em:** 15/10/2026.
-- **Atualizada em:** 16/10/2026.
+- **Atualizada em:** 17/10/2026.
 - **Origem:** exemplos do usuário; análises e alternativas do assistente explicitadas.
 - **Situação:** Em exploração.
 
@@ -99,3 +99,54 @@ O usuário autorizou desenvolver o escopo apresentado. A estratégia básica de 
 A primeira máquina ficou fácil de vencer. O usuário considera improvável que o sorteio, sozinho, gere dificuldade consistente. Será necessário aumentar a força da máquina numa feature futura para oferecer um desafio real; o algoritmo e os níveis continuam por definir.
 
 A versão básica foi considerada concluída e suficiente para esta primeira entrega. O usuário autorizou integrar à develop no GitHub e publicar como está, sem acrescentar dificuldade agora. O atraso de resposta escolhido nos testes foi de **0,7 segundo**.
+
+## Decisão de 17/10/2026 — nível fácil
+
+O usuário confirmou que a estratégia atual da máquina será o **nível fácil**: conquistar um pequeno quadrante, bloquear uma linha imediata do humano ou sortear entre jogadas válidas, conforme a implementação básica. Essa decisão define a classificação da estratégia existente; não significa que a interface já tenha seleção de dificuldade.
+
+O comportamento do nível médio está em discussão e será apresentado ao usuário para conferir o entendimento antes de fechar suas regras. Os registros anteriores que tratavam todos os níveis como possibilidades foram substituídos por esta confirmação quanto ao nível fácil; os demais continuam em aberto.
+
+
+## Decisão e implementação de 17/10/2026 — médio e seleção de dificuldade
+
+**Confirmação do usuário:** o texto proposto para o médio corresponde ao que imaginou. Autorizou implementar em uma branch de dificuldade e atualizar os registros. A branch criada foi `feat/dificuldade`.
+
+**Regras aprovadas:** manter conquistar um quadrante e bloquear uma vitória imediata acima da construção de linhas. Nas demais escolhas, favorecer conexões com as próprias peças em linhas ainda possíveis e reduzir a prioridade de uma posição que envie o humano a um quadrante onde possa conquistar imediatamente. Vitória direta, neste contexto, inclui conquistar o quadrante de destino, sem precisar vencer a partida inteira.
+
+**Exemplo do usuário:** com uma peça na posição 7 do quadrante 7, considerar a posição 4 ao voltar a jogar nesse quadrante, construindo a linha 1–4–7. Essa opção deixa de ser preferível se enviar o humano ao quadrante 4 permitir uma conquista imediata. A posição 4 é um exemplo, não uma abertura obrigatória nem preferência fixa sobre outras conexões equivalentes.
+
+**Implementado localmente:** estratégia `MediumMachineStrategy`, separada da estratégia fácil. Avalia o estado após cada jogada candidata, inclusive quando ela fecha o destino ou bloqueia uma ameaça no próprio destino. Destino fechado libera todos os quadrantes abertos; nesse caso, verifica se o humano pode conquistar em algum deles. Empates de avaliação são sorteados. Não faz busca profunda de sequências.
+
+**Pesos iniciais escolhidos pelo assistente para concretizar a hierarquia:** vitória da partida +10000; conquista de quadrante +1000; bloqueio +100; destino que permite conquista humana −10; cada linha possível conectada a uma peça própria +1. Esses números são ajustes iniciais de implementação, não valores de balanceamento escolhidos pelo usuário. Conquistar e bloquear continuam acima da segurança de destino; entre alternativas da mesma prioridade, a segurança supera as conexões.
+
+**Interface solicitada e implementada:** seleção na tela de nomes ao jogar contra o computador, com Fácil, Médio e Difícil. Fácil e Médio estão disponíveis; Difícil aparece desabilitado como “em breve”, pois sua lógica será definida depois. O nome do computador agora é editável. A revanche mantém nomes e dificuldade, e o nível aparece durante a partida.
+
+**Futuro solicitado pelo usuário:**
+
+- Definir e implementar o nível difícil em outra etapa; algoritmo e regras ainda em aberto.
+- Planejar uma dificuldade impossível e adicioná-la posteriormente. Não aparece na interface atual, não tem algoritmo definido e o nome não garante invencibilidade.
+- Considerar escolher Fácil, Médio ou Difícil também ao iniciar o modo história; ver IDEIA-003. É uma possibilidade futura, sem implementação da campanha nesta entrega.
+
+A seleção e a lógica média foram implementadas no checkout local. A dificuldade prática ainda precisa da avaliação do usuário jogando; não há publicação ou integração desta entrega registrada aqui.
+
+
+## Autorização de publicação em 17/10/2026
+
+O usuário aceitou manter o design provisório do seletor e autorizou publicar Fácil e Médio no site existente para testar à distância e compartilhar com outras pessoas. Sua preferência futura é escolher a dificuldade por botões, a retomar após concluir a identidade visual (IDEIA-001). Difícil continua como “em breve” e Impossível fica para uma etapa futura.
+
+
+**Publicação confirmada em 17/10/2026:** versão 4 do Sites publicada com sucesso em https://super-jogo-da-velha.airygrass64.chatgpt.site, mantendo acesso público. Fácil e Médio disponíveis para testes; Difícil permanece desabilitado. O checkout principal continua na branch `feat/dificuldade`; esta publicação não representa merge no GitHub.
+
+## Reavaliação de 17/10/2026 — quatro níveis e balanceamento
+
+**Observação do usuário:** o Fácil parece muito fácil e bastante aleatório; o Médio ainda parece fácil. Gostou da lógica de pesos, mas não considera o balanceamento confirmado. Pretende continuar jogando e passar o jogo para pessoas que não conhecem a lógica da IA.
+
+**Proposta do usuário, ainda em avaliação:** organizar quatro níveis com diferenças perceptíveis: um fácil de jogar, um intermediário (“mais ou menos”), um difícil e um muito difícil, em que seria necessária uma partida excelente ou quase perfeita para vencer, preservando a possibilidade de vitória. Cogitou os nomes “Muito fácil / Fácil / Médio / Difícil”; quantidade, nomes finais e enquadramento das estratégias atuais não foram fechados.
+
+**Relação com decisões anteriores:** o usuário antes havia definido a máquina básica como Fácil e proposto um Impossível futuro. Agora considera reclassificar os níveis, mas não confirmou renomeação. A intenção mais recente para o topo é ser muito difícil e vencível. O papel do nome Impossível fica em aberto; não inferir um quinto nível nem uma exigência de invencibilidade. Os rótulos e comportamentos publicados permanecem como estão.
+
+**Hipótese levantada pelo usuário:** talvez uma máquina pudesse nunca perder por sua capacidade de analisar possibilidades. Isso não foi demonstrado para este jogo. A implementação atual usa regras e pontuação heurística, não probabilidades de vitória calculadas. “Partida perfeita” permanece uma referência de experiência, sem garantia técnica.
+
+**Pedido atendido:** criado o [guia de dificuldades](../dificuldades/README.md), com funcionamento do Fácil, fórmula e exemplos exatos do Médio, limitações, caminhos sugeridos pelo assistente e uma ficha para observações durante os testes. Os valores atuais foram escolhidos pelo assistente para estabelecer prioridades; não resultam de balanceamento comprovado. Conquista e bloqueio superam a penalidade de destino, inclusive quando ceder uma conquista pode encerrar a partida para o humano.
+
+**Escopo desta atualização:** documentação para leitura e reflexão. Manter o jogo atual enquanto o usuário e outras pessoas testam; novos pesos, algoritmos, nomes e níveis aguardam decisão. Sugestões de ajuste no guia não são requisitos aprovados.

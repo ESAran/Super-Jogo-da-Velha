@@ -41,7 +41,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -50,7 +51,8 @@ button {
 }
 
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+select:focus-visible {
   outline: 2px solid var(--yellow);
   outline-offset: 3px;
 }
@@ -393,7 +395,8 @@ input:focus-visible {
   font-size: 0.68rem;
 }
 
-.player-config input {
+.player-config input,
+.player-config select {
   width: 100%;
   padding: 13px 14px;
   color: var(--ink);
@@ -402,7 +405,8 @@ input:focus-visible {
   text-transform: uppercase;
 }
 
-.player-config input:focus {
+.player-config input:focus,
+.player-config select:focus {
   border-color: var(--yellow);
 }
 
@@ -1113,3 +1117,7 @@ input:focus-visible {
     transition-duration: 0.001ms !important;
   }
 }
+
+.difficulty-config { grid-column: 1 / -1; }
+.difficulty-config small { color: var(--muted); line-height: 1.6; }
+.player-config select option { background: var(--void); color: var(--ink); }

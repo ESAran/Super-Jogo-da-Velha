@@ -1,5 +1,5 @@
 import { GameEngine, Player } from "../game/engine";
-import { BasicMachineStrategy, MachineStrategy } from "../game/machine";
+import { BasicMachineStrategy, MachineStrategy, MachineDifficulty, MediumMachineStrategy } from "../game/machine";
 import { GameAudio } from "./audio";
 
 type Screen = "menu" | "setup" | "game" | "rules" | "history" | "credits" | "achievements";
@@ -35,6 +35,8 @@ export class GameApp {
   private screen: Screen = "menu";
   private game: GameEngine | null = null;
   private machineMode = false;
+  private difficulty: MachineDifficulty = "easy";
+  private readonly mediumStrategy = new MediumMachineStrategy();
   private machineTimer: ReturnType<typeof setTimeout> | null = null;
   private lastMove: { mini: number; cell: number } | null = null;
   private matchSaved = false;
@@ -130,11 +132,16 @@ export class GameApp {
         this.machineMode ? "X" : String(data.get("symbol-one") ?? ""),
       );
       const playerTwo = new Player(
-        this.machineMode ? "Computador" : String(data.get("player-two") ?? ""),
+        String(data.get("player-two") ?? (this.machineMode ? "Computador" : "")),
         this.machineMode ? "O" : String(data.get("symbol-two") ?? ""),
         this.machineMode ? "machine" : "human",
       );
 
+      const difficulty = this.machineMode ? String(data.get("difficulty") ?? "easy") : "easy";
+      if (difficulty !== "easy" && difficulty !== "medium") {
+        throw new Error("Essa dificuldade ainda nao esta disponivel.");
+      }
+      this.difficulty = difficulty;
       this.cancelMachineTurn();
       this.game = new GameEngine(playerOne, playerTwo);
       this.matchSaved = false;
@@ -208,7 +215,8 @@ export class GameApp {
     this.machineTimer = setTimeout(() => {
       this.machineTimer = null;
       if (this.game !== game || this.screen !== "game" || !this.isMachineTurn()) return;
-      const move = this.machineStrategy.chooseMove(game!);
+      const strategy = this.difficulty === "medium" ? this.mediumStrategy : this.machineStrategy;
+      const move = strategy.chooseMove(game!);
       if (move !== null) this.performMove(move.mini, move.cell);
     }, 700);
   }
@@ -448,9 +456,21 @@ export class GameApp {
           <div class="versus-mark">VS</div>
           <fieldset class="player-config player-two">
             <legend>${this.machineMode ? "COMPUTADOR" : "JOGADOR 2"}</legend>
-            <label>NOME DE OPERADOR<input name="player-two" maxlength="18" value="${this.machineMode ? "Computador" : "Salazar"}" ${this.machineMode ? "readonly" : ""} required /></label>
+            <label>NOME DE OPERADOR<input name="player-two" maxlength="18" value="${this.machineMode ? "Computador" : "Salazar"}" required /></label>
             <label>SIMBOLO<input name="symbol-two" maxlength="1" value="O" ${this.machineMode ? "readonly" : ""} required /></label>
           </fieldset>
+          ${this.machineMode ? `
+          <fieldset class="player-config difficulty-config">
+            <legend>DIFICULDADE</legend>
+            <label>NIVEL DO COMPUTADOR
+              <select name="difficulty" aria-describedby="difficulty-help">
+                <option value="easy" ${this.difficulty === "easy" ? "selected" : ""}>Fácil</option>
+                <option value="medium" ${this.difficulty === "medium" ? "selected" : ""}>Médio</option>
+                <option value="hard" disabled>Difícil — em breve</option>
+              </select>
+            </label>
+            <small id="difficulty-help">Fácil: conquistar e bloquear. Médio: também conecta peças e avalia o próximo destino.</small>
+          </fieldset>` : ""}
           <div class="form-actions">
             <button class="ghost-button" data-action="menu" type="button">← CANCELAR</button>
             <button class="launch-button" type="submit">INICIAR PARTIDA <span>↗</span></button>
@@ -506,7 +526,7 @@ export class GameApp {
             <span>ESTADO</span>
             <strong>${game.finished ? "ENCERRADO" : "EM CURSO"}</strong>
             <span>PROTOCOLO</span>
-            <strong>ULTIMATE / ${game.playerTwo.kind === "machine" ? "MAQUINA" : "LOCAL"}</strong>
+            <strong>ULTIMATE / ${game.playerTwo.kind === "machine" ? `MAQUINA / ${this.difficulty === "medium" ? "MÉDIO" : "FÁCIL"}` : "LOCAL"}</strong>
           </div>
         </aside>
 
